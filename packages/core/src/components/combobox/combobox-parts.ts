@@ -615,6 +615,44 @@ const comboboxChips = /* @__PURE__ */ (() => ({
         "aria-labelledby": state.labeled ? `${id}-label` : undefined,
         ...formAttrs(state),
       }),
+      // A Field's label names the input by writing to it, so the chips take
+      // that name too, unless the combobox's label or the author names them.
+      bind(el, { api, store }) {
+        let wrote: string | undefined
+        const write = () => {
+          const own = el.getAttribute("aria-labelledby") ?? undefined
+          if (store.get().labeled || own !== wrote) {
+            return
+          }
+          const name =
+            api.internal.inputElement()?.getAttribute("aria-labelledby") ??
+            undefined
+          if (name === wrote) {
+            return
+          }
+          wrote = name
+          if (name) {
+            el.setAttribute("aria-labelledby", name)
+          } else {
+            el.removeAttribute("aria-labelledby")
+          }
+        }
+        write()
+        const unsubscribe = store.subscribe(write)
+        const observer =
+          typeof MutationObserver === "undefined"
+            ? undefined
+            : new MutationObserver(write)
+        observer?.observe(el, {
+          attributeFilter: ["aria-labelledby"],
+          childList: true,
+          subtree: true,
+        })
+        return () => {
+          unsubscribe()
+          observer?.disconnect()
+        }
+      },
       on: {
         pointerdown(event, { api, el }) {
           if (event.target !== el) {
