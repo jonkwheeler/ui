@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/fixtures/*/octane*.tsx", "src/ssr/octane*.ts"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "octane",
+    "types": ["vite/client"]
+  }
+}

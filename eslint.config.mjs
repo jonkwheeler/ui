@@ -20,6 +20,12 @@ const solidFiles = [
   "examples/components/*/solid/**/*.tsx",
   "apps/playground/src/fixtures/**/solid*.tsx",
 ]
+// Octane runs React's API through its own compiler, which treats a missing deps
+// array as "infer" and `null` as "every render", so React's hooks lint misreads it.
+const octaneFiles = [
+  "packages/octane/src/**/*.{ts,tsx}",
+  "apps/playground/src/fixtures/**/octane*.tsx",
+]
 const vueFiles = [
   "packages/vue/src/**/*.vue",
   "examples/*/vue/**/*.vue",
@@ -36,7 +42,7 @@ const svelteFiles = [
 const config = [
   { ignores: ["**/dist/**", "**/node_modules/**", "**/.svelte-kit/**"] },
   {
-    files: [...react, ...solidFiles],
+    files: [...react, ...solidFiles, ...octaneFiles],
     languageOptions: { parser: tseslint.parser },
   },
   { ...reactHooks.configs.flat.recommended, files: react },
