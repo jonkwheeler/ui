@@ -507,3 +507,13 @@ describe("debug", () => {
     log.mockRestore()
   })
 })
+
+test("a second copy of core finds the shared toast's internals", async () => {
+  const first = await import("../src/components/toast/toaster")
+  vi.resetModules()
+  const second = await import("../src/components/toast/toaster")
+  expect(second.toasterInternals).not.toBe(first.toasterInternals)
+  expect(second.toast).toBe(first.toast)
+  expect(() => second.toasterInternals(second.toast)).not.toThrow()
+  expect(() => first.toasterInternals(second.createToaster())).not.toThrow()
+})

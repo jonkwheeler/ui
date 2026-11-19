@@ -156,8 +156,16 @@ function isOptions(value: unknown): value is ToastOptions<unknown> {
   return !("$$typeof" in value) && !("__v_isVNode" in value)
 }
 
-// What a region needs from its toaster that isn't public api.
-const internals = new WeakMap<object, ToasterInternals>()
+// What a region needs from its toaster that isn't public api. Shared on
+// `globalThis` like `toast`, so a second copy of core, such as one hot reload
+// loads, finds the shared toaster's side too.
+const internals = () =>
+  ((globalThis as Record<symbol, unknown>)[
+    Symbol.for("ui-sdk.toaster-internals@1")
+  ] ??= new WeakMap<object, ToasterInternals>()) as WeakMap<
+    object,
+    ToasterInternals
+  >
 
 type ToasterInternals = {
   // Closes a toast for a reason, unless `onDismiss` cancels. Returns whether it closed.
@@ -170,7 +178,7 @@ type ToasterInternals = {
 
 // The internal side of a toaster, for regions and hosts.
 function toasterInternals(toaster: object) {
-  const found = internals.get(toaster)
+  const found = internals().get(toaster)
   if (!found) {
     throw new Error("Expected a toaster from createToaster().")
   }
@@ -381,7 +389,7 @@ function createToaster<Content = string>({
   }
 
   Object.assign(toaster, api)
-  internals.set(toaster, {
+  internals().set(toaster, {
     close,
     attachRegion(placed) {
       if (!placed) {
