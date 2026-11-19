@@ -91,7 +91,67 @@ A ref from `snapshot` stays with its component while it's on the page, including
 
 ## Stopping a Turn
 
-A step that needs a person waits for your [`allow`](./permissions#ask-first) callback. If the person stops the chat while it waits, answer `false` from your confirmation so the step ends and later calls don't wait behind it. Otherwise the step fails once `timeout` passes, 5 minutes by default.
+A step that needs a person waits for your [`allow`](./permissions#ask-first) callback, and later calls wait behind it. When the person stops the chat, pass a `signal` to `act` so that wait ends too. Here's `chat.tsx` again with one `AbortController` per turn and a **Stop** button:
+
+```tsx title="chat.tsx" {1,8-9,13-18,27,40-48}
+import { useRef, useState } from "react"
+import { useChat } from "@ai-sdk/react"
+import { lastAssistantMessageIsCompleteWithToolCalls } from "ai"
+import { agent } from "./agent"
+
+function Chat() {
+  const [input, setInput] = useState("")
+  const turn = useRef(new AbortController())
+  const { messages, sendMessage, addToolOutput, stop } = useChat({
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    async onToolCall({ toolCall }) {
+      const tool = toolCall.toolName as "snapshot" | "act" | "query"
+      const output =
+        tool === "act"
+          ? await agent.act(toolCall.input as never, {
+              signal: turn.current.signal,
+            })
+          : await agent[tool](toolCall.input as never)
+      addToolOutput({ tool, toolCallId: toolCall.toolCallId, output })
+    },
+  })
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault()
+        turn.current = new AbortController()
+        sendMessage({ text: input })
+        setInput("")
+      }}
+    >
+      {messages.map((message) => (
+        <p key={message.id}>
+          {message.parts
+            .map((part) => (part.type === "text" ? part.text : ""))
+            .join("")}
+        </p>
+      ))}
+      <input value={input} onChange={(event) => setInput(event.target.value)} />
+      <button
+        type="button"
+        onClick={() => {
+          turn.current.abort()
+          stop()
+        }}
+      >
+        Stop
+      </button>
+    </form>
+  )
+}
+
+export { Chat }
+```
+
+**Stop** aborts the turn's signal and stops the chat. The step that was waiting fails as cancelled, the steps after it don't run, and the `signal` passed to `allow` aborts so you can close your prompt. The result still goes back with the next message, so the model knows what didn't happen.
+
+Without a signal, the step fails once `timeout` passes, 5 minutes by default.
 
 ## Next Steps
 

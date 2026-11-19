@@ -1215,7 +1215,7 @@ function createAgent(
   }
 
   // `registerTools`' own `allow`, for the calls the browser's agent makes,
-  // and the signal that agent aborts when it gives a call up.
+  // and the signal of the running `act`, aborted when its caller gives up.
   let callerAllow: Allow | undefined
   let callerSignal: AbortSignal | undefined
 
@@ -1884,6 +1884,13 @@ function createAgent(
     const touched = new Set<string>()
     let error: { step: number; message: string } | undefined
     for (const [index, step] of steps.entries()) {
+      if (callerSignal?.aborted) {
+        error = {
+          step: index,
+          message: `${step.action} on ${step.ref} was cancelled.`,
+        }
+        break
+      }
       try {
         const prior = capture()
         const { ref, result } = await perform(
@@ -2069,6 +2076,22 @@ function createAgent(
     return next
   }
 
+  const turn = (
+    input: { steps: AgentStep[] },
+    allow?: Allow,
+    signal?: AbortSignal
+  ) =>
+    inTurn(async () => {
+      callerAllow = allow
+      callerSignal = signal
+      try {
+        return await act(input.steps ?? [])
+      } finally {
+        callerAllow = undefined
+        callerSignal = undefined
+      }
+    })
+
   const agent = {
     /**
      * Every component on the page, as an agent sees it, then the ones that
@@ -2101,10 +2124,11 @@ function createAgent(
      * together. A step names its component by ref, or by its label or row
      * text, whole words regardless of case and accents, so it can reach one
      * an earlier step brought onto the page. Stops at the first step that
-     * fails, and says which.
+     * fails, and says which. When `signal` aborts, a step waiting on `allow`
+     * fails as cancelled and later steps don't run.
      */
-    act: (input: { steps: AgentStep[] }) =>
-      inTurn(() => act(input.steps ?? [])),
+    act: (input: { steps: AgentStep[] }, options?: { signal?: AbortSignal }) =>
+      turn(input, undefined, options?.signal),
     /**
      * Finds components without listing the page. `text` matches a
      * component's label or row text by whole words, and a list's items, which
@@ -2131,18 +2155,7 @@ function createAgent(
   guardedActions.set(agent.act, (steps, guard) =>
     inTurn(() => act(steps, guard))
   )
-  allowing.set(agent, (input, allow, signal) =>
-    inTurn(async () => {
-      callerAllow = allow
-      callerSignal = signal
-      try {
-        return await act(input.steps ?? [])
-      } finally {
-        callerAllow = undefined
-        callerSignal = undefined
-      }
-    })
-  )
+  allowing.set(agent, turn)
   return agent
 }
 

@@ -267,6 +267,52 @@ describe("data-agent-confirm", () => {
     )
   })
 
+  test("aborting act's signal ends a step waiting on allow, skips the rest and frees the next call", async () => {
+    let signal: AbortSignal | undefined
+    const agent = createAgent({
+      allow: (_step, context) => {
+        signal = context.signal
+        return new Promise<boolean>(() => {})
+      },
+    })
+    const buy = mountButton("Buy credits")
+    const save = mountButton("Save")
+    const stop = new AbortController()
+    const call = agent.act(
+      {
+        steps: [
+          { ref: "Buy credits", action: "press" },
+          { ref: "Save", action: "press" },
+        ],
+      },
+      { signal: stop.signal }
+    )
+    await vi.waitFor(() => expect(signal).toBeDefined())
+    stop.abort()
+    expect((await call).error).toEqual({
+      step: 0,
+      message: expect.stringMatching(/^press on c\d+ was cancelled\.$/),
+    })
+    expect(signal?.aborted).toBe(true)
+    expect(buy.onClick).not.toHaveBeenCalled()
+    expect(save.onClick).not.toHaveBeenCalled()
+    expect(await agent.query({ kind: "button" })).toEqual(expect.any(Array))
+  })
+
+  test("act with a signal that already aborted runs no step", async () => {
+    const agent = createAgent()
+    const { onClick } = mountButton("Buy credits")
+    const result = await agent.act(
+      { steps: [{ ref: "Buy credits", action: "press" }] },
+      { signal: AbortSignal.abort() }
+    )
+    expect(result.error).toEqual({
+      step: 0,
+      message: "press on Buy credits was cancelled.",
+    })
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
   test("a step nobody answers fails after the timeout, aborts allow's signal and frees the next call", async () => {
     let signal: AbortSignal | undefined
     const agent = createAgent({

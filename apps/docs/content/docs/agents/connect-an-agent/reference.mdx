@@ -77,6 +77,8 @@ const result = await agent.act({
 })
 ```
 
+Pass `{ signal }` as a second argument to stop it early. When the signal aborts, a step waiting on `allow` fails as cancelled, and the steps after it don't run.
+
 ### Steps
 
 Each step is an `AgentStep`:
