@@ -19,6 +19,7 @@ import {
   SelectValue,
   type ListData,
 } from "@ui-sdk/octane/select"
+import { Field, FieldLabel } from "@ui-sdk/octane/field"
 import * as React from "octane"
 import { createRoot } from "octane"
 import { onItemsChange } from "tests/fixtures/items.ts"
@@ -117,6 +118,7 @@ function Fixture({ data = false }: { data?: boolean }) {
   const wrapped = new URLSearchParams(location.search).has("wrapped")
   const {
     fieldset,
+    field,
     grouped,
     cancel,
     align,
@@ -163,6 +165,15 @@ function Fixture({ data = false }: { data?: boolean }) {
         }}
       >
         <Wrap fieldset={fieldset}>
+          {field && (
+            <Field>
+              <FieldLabel className="label">{f.label}</FieldLabel>
+              <SelectTrigger className="trigger" controller={controller}>
+                <SelectValue className="value" maxLabels={max} />
+                <span aria-hidden="true">▾</span>
+              </SelectTrigger>
+            </Field>
+          )}
           <Select<string, boolean>
             {...options}
             name={f.name}
@@ -180,11 +191,15 @@ function Fixture({ data = false }: { data?: boolean }) {
               )
             }}
           >
-            <SelectLabel className="label">{f.label}</SelectLabel>
-            <SelectTrigger className="trigger">
-              <SelectValue className="value" maxLabels={max} />
-              <span aria-hidden="true">▾</span>
-            </SelectTrigger>
+            {!field && (
+              <>
+                <SelectLabel className="label">{f.label}</SelectLabel>
+                <SelectTrigger className="trigger">
+                  <SelectValue className="value" maxLabels={max} />
+                  <span aria-hidden="true">▾</span>
+                </SelectTrigger>
+              </>
+            )}
             <SelectClear>{f.clear}</SelectClear>
             {wrapped ? (
               <StyledContent />
