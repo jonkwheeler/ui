@@ -4,7 +4,11 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `45ab232b` (2026-11-19, the spike: the shared layer plus Menu, Select, Combobox, Tree and Popover).
 
-Mirrors `packages/react` at `8ff63026` (`@ui-sdk/react@0.1.0-beta.1`). Moving the port forward moves this line.
+Mirrors `packages/react` at `c0a383f9`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+
+Upstream commits with nothing to port:
+
+- `c0a383f9` (#501): resolves React's Flight lazy placeholder in `render` elements. Octane has no Server Components, and its own `lazy()` returns an ordinary component, so `cloneElement` already works.
 
 ## Settled
 
