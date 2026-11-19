@@ -11,7 +11,7 @@ afterEach(() => {
   cleanups.splice(0).forEach((cleanup) => cleanup())
 })
 
-async function mountInField(chipsName?: string) {
+async function mountInField(own: Record<string, string> = {}) {
   const view = mount(
     field,
     { name: "tags" },
@@ -25,8 +25,8 @@ async function mountInField(chipsName?: string) {
   })
   instance.use(comboboxChips)
   const chips = document.createElement("div")
-  if (chipsName) {
-    chips.setAttribute("aria-labelledby", chipsName)
+  for (const [name, value] of Object.entries(own)) {
+    chips.setAttribute(name, value)
   }
   const input = chips.appendChild(document.createElement("input"))
   view.root.append(chips)
@@ -47,6 +47,11 @@ test("inside a Field, the chips toolbar takes the name the field's label gives t
 })
 
 test("a name the author gave the chips toolbar stays", async () => {
-  const { chips } = await mountInField("own-name")
+  const { chips } = await mountInField({ "aria-labelledby": "own-name" })
   expect(chips.getAttribute("aria-labelledby")).toBe("own-name")
+})
+
+test("an aria-label the author gave the chips toolbar stays its name", async () => {
+  const { chips } = await mountInField({ "aria-label": "Selected tags" })
+  expect(chips.hasAttribute("aria-labelledby")).toBe(false)
 })

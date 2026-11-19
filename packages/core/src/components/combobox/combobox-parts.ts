@@ -624,9 +624,10 @@ const comboboxChips = /* @__PURE__ */ (() => ({
           if (store.get().labeled || own !== wrote) {
             return
           }
-          const name =
-            api.internal.inputElement()?.getAttribute("aria-labelledby") ??
-            undefined
+          const name = el.hasAttribute("aria-label")
+            ? undefined
+            : (api.internal.inputElement()?.getAttribute("aria-labelledby") ??
+              undefined)
           if (name === wrote) {
             return
           }
@@ -644,7 +645,7 @@ const comboboxChips = /* @__PURE__ */ (() => ({
             ? undefined
             : new MutationObserver(write)
         observer?.observe(el, {
-          attributeFilter: ["aria-labelledby"],
+          attributeFilter: ["aria-labelledby", "aria-label"],
           childList: true,
           subtree: true,
         })
