@@ -127,6 +127,7 @@ function PopoverContent<Payload = unknown>({
   initialFocus,
   finalFocus,
   keepMounted,
+  inline,
   container,
   render,
   ...props
@@ -143,6 +144,7 @@ function PopoverContent<Payload = unknown>({
     initialFocus,
     finalFocus,
     keepMounted,
+    inline,
   }
   const handle = useHandle(popover)
   // The payload's type is the app's, from `Payload`; the part hands its state on as it is.
@@ -151,7 +153,7 @@ function PopoverContent<Payload = unknown>({
     render: sheetViewport(handle, render),
   } as PartProps<"div", PopoverContentState>
   const element = usePart(handle, "content", content, partProps)
-  return element && renderPopup(element, target)
+  return element && (inline ? element : renderPopup(element, target))
 }
 
 /**
