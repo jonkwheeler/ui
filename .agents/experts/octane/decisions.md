@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `45ab232b` (2026-11-19, the spike: the shared layer plus Menu, Select, Combobox, Tree and Popover).
 
-Mirrors `packages/react` at `9b0f80fc`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `e154eadf`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits with nothing to port:
 
@@ -41,5 +41,7 @@ Upstream commits with nothing to port:
 - **Pinned to `octane` 0.20.0.** 0.21.0 is the newest release old enough for `minimumReleaseAge` from 2026-11-19T22:44Z; bump then and recheck.
 
 ## Revisit
+
+- A replay agent reported two crashes around `<Activity>` children that probes on 0.20.0 didn't reproduce. One was a part's children arriving as a children block that `renderElement` then calls as a render function (`reading 'block'`). The other was a destructured prop inside `<Activity>` children throwing `props is not defined`. `render-element.test.tsx` covers the first shape. If either shows up again, keep the exact source; the guard for the first would be `!React.isChildrenBlock(children)` beside each `typeof children === "function"`.
 
 - If a later Octane release proves imported helpers memoizable, `readIn`, `presentIn` and `slotIn` reads may go stale in production builds. The spike's `octane.spike` spec and a production-build run catch it.

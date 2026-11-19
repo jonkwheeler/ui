@@ -1,6 +1,7 @@
 /** @jsxImportSource octane */
-import { act, createRoot, type Root } from "octane"
+import { Activity, act, createRoot, type Root } from "octane"
 import { afterEach, expect, test } from "vitest"
+import { Field } from "../src/field"
 import { mergeProps, renderElement } from "../src/primitive"
 
 let root: Root | undefined
@@ -57,4 +58,21 @@ test("merged class names are joined", async () => {
     { className: "user" }
   )
   expect(button.className).toBe("part user")
+})
+
+test("a part renders children that hold an <Activity>", async () => {
+  function Page(props: { mode: "visible" | "hidden" }) {
+    return (
+      <Field>
+        <b>before</b>
+        <Activity mode={props.mode}>
+          <span>shown</span>
+        </Activity>
+      </Field>
+    )
+  }
+  const container = document.body.appendChild(document.createElement("div"))
+  root = createRoot(container)
+  await act(async () => root!.render(<Page mode="visible" />))
+  expect(container.querySelector("span")?.textContent).toBe("shown")
 })
