@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `45ab232b` (2026-11-19, the spike: the shared layer plus Menu, Select, Combobox, Tree and Popover).
 
-Mirrors `packages/react` at `81943edd`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `e741e64d`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits with nothing to port:
 
@@ -19,7 +19,7 @@ Upstream commits with nothing to port:
 - **Source ships, not a build.** Every `.tsx` opens with the octane pragma and the package peers on `octane >=0.20.0`. An open lower bound like `@ui-sdk/react`'s `react >=19`, since Octane's 0.x minors break often and a caret range would fail installs. The nightly canary catches what the open range lets through.
 - **`<Ctx value>` for every context.** Octane removed `.Provider`. Lowercase locals that hold a context are renamed to a capital before rendering.
 - **One `useId` per root.** Per-slot ids derive from it (`${id}-${key}`), since Octane rejects a hook inside a loop.
-- **`null` deps on effects that run every commit.** Octane infers omitted deps. At this base `null` changes nothing observable, because the inferred deps include objects made each render, but it becomes load-bearing once `runBindWrites` lands.
+- **`null` deps on effects that run every commit.** Octane infers omitted deps. The `runBindWrites` effect in `usePrimitive` captures only an import, so omitted deps infer `[]` and only the mount gets flushed: `act-mount.test.tsx`'s later-commit case fails without `null`.
 - **`onInput` for core's `input` event and the controlled-value no-op.** Native events go to core as they are.
 - **`propNames`, `booleans` and `styleObject` stay.** A style string would replace the inline styles core writes itself.
 - **Hooks never inside JSX children.** Six sites in `menu`, `tree` and `combobox`, plus `Field` and `FieldSet`, call `usePart` into a `const` first. See "Known and open" for why.

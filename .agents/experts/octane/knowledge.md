@@ -60,6 +60,7 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 - Roots that call `hasChild` or `learnLabels` (`Menu`, `Select`, `Combobox`, `TreeItem`, and later `TriggerMenu`, `Autocomplete`, `Command`) are wrapped in `descriptorChildren`. `Field` clones its `render` prop, not its children, and props keep descriptors, so it needs no marker.
 - `usePart` and other hooks are called into a `const` before `return`, never inside JSX children.
 - The package ships `.tsx` and `.ts` source with `octane` as a peer and no build step of its own.
+- Octane's synchronous `act()` stays open while it drains, so work a microtask later never warns. The warning is off by default; `setIsOctaneActEnvironment(true)` from `octane` turns it on. A test that checks work lands inside `act()` compares the container before and after instead of waiting for a warning.
 - A React unit test ports with the pragma, `act` and `createRoot` (or `renderToString` from `octane/server`) from `octane`, no `IS_REACT_ACT_ENVIRONMENT`, and no `StrictMode` expectations. Server-render tests are `*-ssr.test.tsx`, which the package's `ssr` Vitest project compiles for the server.
 - A fix that lands in core reaches Octane without an adapter change. Port React's doc comments and tests so the files still diff.
 
