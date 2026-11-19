@@ -104,11 +104,10 @@ function Field({
     () => extendHandle(field, { name, disabled }),
     [field, name, disabled]
   )
+  const root = usePart(field, "root", {}, props, "div")
   return (
     <FieldContext value={context}>
-      <DescribedContext value={field}>
-        {usePart(field, "root", {}, props, "div")}
-      </DescribedContext>
+      <DescribedContext value={field}>{root}</DescribedContext>
     </FieldContext>
   )
 }
@@ -230,11 +229,8 @@ function FieldSet({
   ...props
 }: FieldSetOptions & Omit<PartProps<"fieldset", FieldSetState>, "disabled">) {
   const set = usePrimitive(fieldSet, { disabled, debug })
-  return (
-    <DescribedContext value={set}>
-      {usePart(set, "set", {}, props, "fieldset")}
-    </DescribedContext>
-  )
+  const element = usePart(set, "set", {}, props, "fieldset")
+  return <DescribedContext value={set}>{element}</DescribedContext>
 }
 
 /**

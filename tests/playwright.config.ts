@@ -25,6 +25,7 @@ const frameworks = [
   "solid",
   "solid-data",
   "solid-ssr",
+  "octane",
 ]
 
 // CI runs on 2-core Linux runners, so it uses one worker per core and retries timing

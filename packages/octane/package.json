@@ -31,11 +31,16 @@
   "exports": {
     "./alert-dialog": "./src/alert-dialog.tsx",
     "./async-options": "./src/async-options.ts",
+    "./combobox": "./src/combobox.tsx",
     "./field": "./src/field.tsx",
+    "./menu": "./src/menu.tsx",
     "./overlays": "./src/overlays.tsx",
+    "./popover": "./src/popover.tsx",
     "./primitive": "./src/primitive.ts",
+    "./select": "./src/select.tsx",
     "./shortcuts": "./src/shortcuts.ts",
-    "./toast": "./src/toast.tsx"
+    "./toast": "./src/toast.tsx",
+    "./tree": "./src/tree.tsx"
   },
   "sideEffects": false,
   "scripts": {

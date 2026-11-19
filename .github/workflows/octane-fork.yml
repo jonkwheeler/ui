@@ -1,0 +1,50 @@
+name: Octane (fork)
+
+# Fork-only checks for @ui-sdk/octane. The upstream PR leaves this file out.
+on:
+  push:
+    branches: [octane-spike, feat/octane-adapter]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  spike:
+    name: Spike specs on a built playground
+    if: github.repository != 'vercel-labs/ui'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          browsers: chromium
+
+      - name: Record versions
+        run: |
+          {
+            echo "commit: $(git rev-parse HEAD)"
+            echo "octane: $(node -p "require('octane/package.json').version")"
+            echo "@tsrx/oxc: $(node -p "require('@tsrx/oxc/package.json').version")"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Specs
+        working-directory: tests
+        env:
+          PLAYGROUND_PORT: "5300"
+          PLAYGROUND_BUILD: "1"
+        run: npx playwright test specs/menu specs/select specs/combobox specs/tree specs/popover --project octane
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: spike-test-results
+          path: tests/test-results
+          retention-days: 7

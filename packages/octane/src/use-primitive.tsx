@@ -565,8 +565,10 @@ type PartProps<
     React.CSSProperties | ((state: State) => React.CSSProperties | undefined)
   /** Renders your own element: one that receives the part's props, or a function of the props and the state. */
   render?: RenderProp<State>
+  // `{} | null` stands for Octane's `ReactNode`, which is `unknown` and would
+  // absorb the function, leaving its `state` untyped.
   /** Content, or a function of the part's state that returns it. */
-  children?: React.ReactNode | ((state: State) => React.ReactNode)
+  children?: {} | null | ((state: State) => React.ReactNode)
 }
 
 // Attributes in `skip` may differ.
