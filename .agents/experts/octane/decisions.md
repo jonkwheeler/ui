@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `45ab232b` (2026-11-19, the spike: the shared layer plus Menu, Select, Combobox, Tree and Popover).
 
-Mirrors `packages/react` at `c0a383f9`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `67f5a315`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits with nothing to port:
 
@@ -31,6 +31,7 @@ Upstream commits with nothing to port:
 
 - **Octane miscompiles a hook inside JSX children** (0.20.0). `<Ctx value={v}>{useHook()}</Ctx>` runs the hook in a deferred children body: after the first render its effects disconnect and its state updates never show, with no diagnostic. Repro: a `useCounter` hook rendered inline stays at `0` after two clicks, and its layout effect cleans up and never sets up again; the hoisted form counts to `2`. The port hoists every such call. Report to octanejs/octane; remove nothing until a fixed release ships.
 - **`combobox.items` "a content with no children renders items that arrive while it's open" skips on Octane.** The spec gates it with `!framework.startsWith("react")`, although the Octane fixture keeps `?late`. Widening the gate belongs to the shared-spec helper, not a spec edit here.
+- **`menu.spec` "moving from a submenu trigger straight to another item highlights that item" is load-sensitive.** It failed once at load average 10 to 22 (the item highlighted but didn't take focus), then passed 3 of 3 against a served build.
 - **Modal side-effect specs are load-sensitive.** `menu.enhancements` "with modal true, the page scroll is locked and restored exactly" and `popover.enhancements` "modal popovers make the rest of the page inert…" and "live regions keep announcing…" read `inert` and `overflow` right after the popup shows. They failed under full-suite load on Octane and on React, and passed 10 of 10 in isolation on both. Not an Octane gap.
 - **The playground's client build takes about 2s longer** (median 8.8s against 6.6s) with Octane's plugin loaded, which checks every module for the pragma.
 - **Octane hydration keeps mismatched ids without a warning.** With a different `identifierPrefix`, the client computes new ids and the DOM keeps the server's. SSR fixtures must hydrate with the same prefix the server used.
