@@ -112,7 +112,7 @@ function mergeRefs(a: React.Ref<unknown>, b: React.Ref<unknown>) {
  * @stable
  */
 type RenderProp<State = {}> =
-  | React.ReactElement<Record<string, any>>
+  | React.ReactElement<any>
   | ((props: Record<string, any>, state: State) => React.ReactElement)
 
 /**

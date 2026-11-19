@@ -30,6 +30,7 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 ### Types
 
 - `ReactNode` is `unknown`, so a union like `ReactNode | ((state) => ReactNode)` collapses to `unknown` and the function loses its parameter types. Write children that may be functions as `{} | null | ((state: State) => ReactNode)`.
+- `ReactElement<P>` defaults `P` to `any`, and `ElementDescriptor<P>` uses `P` in its `type`, so `ReactElement<{ href: string }>` isn't assignable to `ReactElement<Record<string, any>>`. Code that takes any element types it `ReactElement<any>`.
 - `useState` and `useReducer` return `[value, set, get]`. Destructure before passing the pair where a two-item tuple is typed.
 
 ### Children
