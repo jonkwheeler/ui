@@ -4,12 +4,13 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `45ab232b` (2026-11-19, the spike: the shared layer plus Menu, Select, Combobox, Tree and Popover).
 
-Mirrors `packages/react` at `92653572`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `9b0f80fc`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits with nothing to port:
 
 - `c0a383f9` (#501): resolves React's Flight lazy placeholder in `render` elements. Octane has no Server Components, and its own `lazy()` returns an ordinary component, so `cloneElement` already works.
 - `92653572` (#675): empties `followTree`'s list of detached elements once a popup unmounts, since React keeps the unmounted fiber, whose ref reaches the list, for a while. Octane keeps nothing of an unmounted component: without the change, a popup's element was collected right after unmount in dev and production compiles. After unmount the list is reachable only through one of its own elements, whose descriptor Octane keeps on the node.
+- `9b0f80fc` (#682): `resolveLazy` unwraps every lazy wrapper, since `next dev` nests the Flight placeholder two deep. Octane never ported `resolveLazy` (see `c0a383f9`), so there's nothing to change.
 
 ## Settled
 
