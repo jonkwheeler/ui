@@ -1,6 +1,6 @@
 ---
 name: ui-sdk-write-code
-description: Writes and edits ui-sdk code (core, the React, Vue, Svelte, Solid and web component adapters, examples, specs and scripts) the way an expert in that framework would, then checks it with the linters, the framework expert's checklist and a cold read. Use whenever you write or change code in this repo, before you call the change done.
+description: Writes and edits ui-sdk code (core, the React, Vue, Svelte, Solid, Octane and web component adapters, examples, specs and scripts) the way an expert in that framework would, then checks it with the linters, the framework expert's checklist and a cold read. Use whenever you write or change code in this repo, before you call the change done.
 metadata:
   internal: true
 ---
@@ -13,15 +13,15 @@ The bar: an expert in the framework reads the file and says "this is how I'd wri
 
 Every piece of code here has a twin that already does it well. Open it before you write a line, and copy its shape, names and order.
 
-| You're writing             | Start from                                                                                                                         |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| A core component           | `packages/core/src/components/tabs/tabs.ts`, or `menu/` once it passes about 400 lines (`menu.ts`, `menu-api.ts`, `menu-parts.ts`) |
-| A popup                    | `packages/core/src/components/popover/popover.ts` and its adapters, on `createPopup` in `foundation/popups/`                       |
-| A React, Vue or Solid part | The same component's file in `packages/<framework>/src/`, on `createParts`                                                         |
-| A Svelte part              | `packages/svelte/src/tabs/`                                                                                                        |
-| A web component            | `packages/web/src/tabs.ts`, on `createParts`                                                                                       |
-| An example                 | The same example in another framework: `examples/components/<name>/<framework>/`                                                   |
-| A spec                     | `tests/specs/tabs*.spec.ts`                                                                                                        |
+| You're writing                     | Start from                                                                                                                         |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| A core component                   | `packages/core/src/components/tabs/tabs.ts`, or `menu/` once it passes about 400 lines (`menu.ts`, `menu-api.ts`, `menu-parts.ts`) |
+| A popup                            | `packages/core/src/components/popover/popover.ts` and its adapters, on `createPopup` in `foundation/popups/`                       |
+| A React, Vue, Solid or Octane part | The same component's file in `packages/<framework>/src/`, on `createParts`                                                         |
+| A Svelte part                      | `packages/svelte/src/tabs/`                                                                                                        |
+| A web component                    | `packages/web/src/tabs.ts`, on `createParts`                                                                                       |
+| An example                         | The same example in another framework: `examples/components/<name>/<framework>/`                                                   |
+| A spec                             | `tests/specs/tabs*.spec.ts`                                                                                                        |
 
 If two twins disagree, the shape is wrong in one of them. Say so instead of picking one.
 
@@ -35,6 +35,7 @@ Read the expert's knowledge file for every framework you touch: `.agents/experts
 - **Vue 3.5**: `<script setup lang="ts">`, `v-model` on parts, `defineModel` when a component you write takes one, typed `defineProps` and `defineSlots`, no options API.
 - **Svelte 5**: runes only (`$state`, `$derived`, `$props`, `$bindable`), snippets, `onclick` attributes, attachments. No `$:`, `on:`, `<slot>` or `createEventDispatcher`. Props typed with an `interface Props`. Outside `packages/svelte`, declaration tags (`{const x = $derived(...)}`) instead of `{@const}`.
 - **Solid 2**: props read where they're used, never destructured; derive with memos, not effects; Solid 2 APIs only.
+- **Octane**: React's API with Octane's compiler rules: `<Ctx value>` instead of `.Provider`, no hook calls in loops, `null` deps for an effect that runs every commit, `onInput` for text, native events (no `nativeEvent`), the `@jsxImportSource octane` pragma on every `.tsx`.
 - **Web components**: platform first. Options reflect as attributes the way built-ins do, public events are `composed` and don't bubble (listen with `{ capture: true }`), and the user's markup stays in light DOM.
 
 ## 3. Write it
