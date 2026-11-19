@@ -547,6 +547,8 @@
 .st-emoji-cell {
   display: grid;
   place-items: center;
+  justify-self: center;
+  width: 31px;
   height: 31px;
   padding: 0;
   border: 0;
