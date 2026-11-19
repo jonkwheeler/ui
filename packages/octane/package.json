@@ -1,0 +1,58 @@
+{
+  "name": "@ui-sdk/octane",
+  "version": "0.1.0-beta.1",
+  "private": true,
+  "description": "UI SDK for Octane.",
+  "keywords": [
+    "octane",
+    "ui",
+    "ui-sdk",
+    "shadcn",
+    "behaviors",
+    "accessibility",
+    "a11y",
+    "aria",
+    "keyboard",
+    "focus",
+    "headless",
+    "unstyled",
+    "components",
+    "agents"
+  ],
+  "type": "module",
+  "license": "Apache-2.0",
+  "homepage": "https://ui-sdk.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel-labs/ui.git",
+    "directory": "packages/octane"
+  },
+  "bugs": "https://github.com/vercel-labs/ui/issues",
+  "exports": {
+    "./alert-dialog": "./src/alert-dialog.tsx",
+    "./async-options": "./src/async-options.ts",
+    "./field": "./src/field.tsx",
+    "./overlays": "./src/overlays.tsx",
+    "./primitive": "./src/primitive.ts",
+    "./shortcuts": "./src/shortcuts.ts",
+    "./toast": "./src/toast.tsx"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "node ../../scripts/tsgo.mjs --noEmit && node ../../scripts/tsgo.mjs --noEmit -p tsconfig.test.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@ui-sdk/core": "workspace:^",
+    "octane": ">=0.20.0"
+  },
+  "devDependencies": {
+    "@tsrx/oxc": "catalog:",
+    "@ui-sdk/core": "workspace:*",
+    "jsdom": "^30.1.2",
+    "octane": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "^5.0.3"
+  }
+}

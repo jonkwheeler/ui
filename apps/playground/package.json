@@ -11,6 +11,7 @@
   "dependencies": {
     "@guidepup/virtual-screen-reader": "^0.33.0",
     "@ui-sdk/core": "workspace:*",
+    "@ui-sdk/octane": "workspace:*",
     "@ui-sdk/react": "workspace:*",
     "@ui-sdk/svelte": "workspace:*",
     "@ui-sdk/vue": "workspace:*",

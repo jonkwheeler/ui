@@ -215,7 +215,7 @@ const publicNameAllowlist = {
 const registries = ["registerShortcut", "registerTools"]
 
 // The packages that render primitives, which import core only through its entries.
-const renderers = ["react", "vue", "solid", "svelte", "web"]
+const renderers = ["react", "vue", "solid", "svelte", "web", "octane"]
 
 // Renderer entries whose component lives in a core entry of another name, each with why.
 const coreEntryOf = {
