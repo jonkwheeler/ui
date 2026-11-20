@@ -31,6 +31,15 @@ Upstream commits with nothing to port:
 - **`shimMissingExports` for the Octane server bundle only** (`apps/playground/ssr-plugin.ts`). Every `octane.tsx` fixture exports `mount`, which imports `createRoot`, and `octane/server` has no `createRoot`. The server never calls `mount`, so the shim's `undefined` is never read; splitting `mount` out of every fixture would diverge them from React's.
 - **`requireDirective` in the shared playground.** Octane's Vite plugin has no include option, and without it would compile every `.tsx`, React's and Solid's fixtures included.
 
+## Unit tests dropped from React's suite
+
+`packages/octane/test` ports every React test file. These cases don't apply to Octane:
+
+- `lifecycle`: "StrictMode's thrown-away instance is never observed, so scope and secrets hold", "StrictMode's thrown-away TriggerMenu never follows the editor" and "an open dialog rendered into a container stays shown through StrictMode's second run of its effects". Octane's `StrictMode` is a pass-through, so no render is thrown away and no effect runs twice.
+- `lazy-render`: "a part renders a render element inside two lazy wrappers". That nesting is the Flight client's, and Octane has no Server Components.
+
+`value-wrapper-strict-mode` keeps its file but tests a hide and show through `<Activity>`, the unbind and rebind Octane does have.
+
 ## Known and open (don't report again, check whether fixed)
 
 - **Octane miscompiles a hook inside JSX children** (0.20.0). `<Ctx value={v}>{useHook()}</Ctx>` runs the hook in a deferred children body: after the first render its effects disconnect and its state updates never show, with no diagnostic. Repro: a `useCounter` hook rendered inline stays at `0` after two clicks, and its layout effect cleans up and never sets up again; the hoisted form counts to `2`. The port hoists every such call. Report to octanejs/octane; remove nothing until a fixed release ships.
