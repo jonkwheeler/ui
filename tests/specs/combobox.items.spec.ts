@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test"
-import { changeItems, expect, lastAction, test } from "../fixtures"
+import { changeItems, expect, lastAction, reactApi, test } from "../fixtures"
 import { changedItems } from "../fixtures/combobox"
 
 // Items that change while the list is open, like options streamed in or
@@ -221,8 +221,8 @@ test.describe("items that arrive while open", () => {
     framework,
   }) => {
     test.skip(
-      !framework.startsWith("react"),
-      "The ?late fixture is React only."
+      !reactApi(framework),
+      "The ?late fixture is React and Octane only."
     )
     await open("combobox", { late: "" })
     await input(page).focus()

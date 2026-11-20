@@ -1,4 +1,4 @@
-import { expect, lastAction, test } from "../fixtures"
+import { expect, lastAction, reactApi, test } from "../fixtures"
 
 // Parts render as any element, through `render` in React, the `render`
 // slot in Vue. Custom elements are the parts themselves. One fixture
@@ -60,8 +60,8 @@ test.describe("custom rendering", () => {
     framework,
   }) => {
     test.skip(
-      !framework.startsWith("react"),
-      "Class functions are React only. Vue uses slot state."
+      !reactApi(framework),
+      "Class functions are React and Octane only. Vue uses slot state."
     )
     const indicator = page.locator(".slider-indicator")
     await expect(indicator).toHaveClass(/is-idle/)

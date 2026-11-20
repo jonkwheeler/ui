@@ -1,4 +1,4 @@
-import { expect, lastAction, test } from "../fixtures"
+import { expect, lastAction, reactApi, test } from "../fixtures"
 import { center, handle, panel } from "./resizable.helpers"
 
 const renders = (page: import("@playwright/test").Page) =>
@@ -74,8 +74,8 @@ test.describe("custom rendering", () => {
 
   test("class names follow the part's state", async ({ page, framework }) => {
     test.skip(
-      !framework.startsWith("react"),
-      "Class functions are React only. Vue uses slot state."
+      !reactApi(framework),
+      "Class functions are React and Octane only. Vue uses slot state."
     )
     const files = handle(page, "Resize files")
     await expect(files).toHaveClass(/is-idle/)

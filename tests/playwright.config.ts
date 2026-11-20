@@ -26,6 +26,7 @@ const frameworks = [
   "solid-data",
   "solid-ssr",
   "octane",
+  "octane-data",
 ]
 
 // CI runs on 2-core Linux runners, so it uses one worker per core and retries timing
@@ -121,16 +122,18 @@ export default defineConfig<{ playground: boolean }>({
       testMatch: portalSpecs,
       testIgnore: [kitchenSinks, countGates, ...specsThatSkip(framework)],
     })),
-    ...["react", "vue", "web", "svelte", "solid"].map((framework) => ({
-      name: `${framework}-sheet`,
-      use: {
-        browserName: "chromium" as const,
-        framework,
-        fixtureOptions: { presentation: "sheet" },
-      },
-      testMatch: sheetSpecs,
-      testIgnore: specsThatSkip(framework),
-    })),
+    ...["react", "vue", "web", "svelte", "solid", "octane"].map(
+      (framework) => ({
+        name: `${framework}-sheet`,
+        use: {
+          browserName: "chromium" as const,
+          framework,
+          fixtureOptions: { presentation: "sheet" },
+        },
+        testMatch: sheetSpecs,
+        testIgnore: specsThatSkip(framework),
+      })
+    ),
     ...browsers.map((browser) => ({
       name: `web-${browser.name}`,
       use: { ...browser.use, framework: "web" },

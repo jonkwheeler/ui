@@ -207,7 +207,15 @@ const budgets = {
     // Elements per row with no options, then per option. Web components'
     // markup holds every part, the menu's items and wrapper elements included.
     // Svelte renders the same elements as React and Vue; its anchors are comments.
-    elements: { react: 8, vue: 8, web: 17, svelte: 8, solid: 8, perOption: 1 },
+    elements: {
+      react: 8,
+      vue: 8,
+      web: 17,
+      svelte: 8,
+      solid: 8,
+      octane: 8,
+      perOption: 1,
+    },
   },
   "rows.labels": {
     measures:

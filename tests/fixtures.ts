@@ -104,6 +104,10 @@ function allowSolidDiagnostic(code: string, why: string) {
   })
 }
 
+/** Whether the project's adapter is React's API, compiled by React or by Octane, like `react-data` or `octane`. */
+const reactApi = (framework: string) =>
+  framework.startsWith("react") || framework.startsWith("octane")
+
 /** Whether the project presents popups as sheets, like `react-sheet`. Specs that measure placement against a trigger skip there. */
 const isSheet = (fixtureOptions: Record<string, string>) =>
   fixtureOptions.presentation === "sheet"
@@ -429,6 +433,7 @@ export {
   panelNamed,
   panelOf,
   patternProblems,
+  reactApi,
   recordDialogNamesAtFocus,
   regionNamed,
   shortcutKeys,

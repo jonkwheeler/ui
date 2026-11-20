@@ -1,4 +1,4 @@
-import { expect, test } from "../fixtures"
+import { expect, reactApi, test } from "../fixtures"
 
 // Parts render as any element, through `render` in React, the `render`
 // slot in Vue. Web components wrap native elements instead.
@@ -24,8 +24,8 @@ test.describe("custom rendering", () => {
 
   test("class names follow the part's state", async ({ page, framework }) => {
     test.skip(
-      !framework.startsWith("react") && !framework.startsWith("solid"),
-      "Class functions are React and Solid only. Vue uses slot state."
+      !reactApi(framework) && !framework.startsWith("solid"),
+      "Class functions are React, Octane and Solid only. Vue uses slot state."
     )
     const box = page.getByRole("textbox", { name: "Class from state" })
     await expect(box).toHaveClass(/is-empty/)
