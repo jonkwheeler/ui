@@ -1,8 +1,9 @@
 import { applyFixtureOptions, loadScreenReader } from "tests/fixtures/page.ts"
 import { renderIndex } from "./index"
 
-// /?fixture=menu&framework=react loads src/fixtures/menu/react.tsx.
-const fixtures = import.meta.glob("./fixtures/*/*.{ts,tsx}")
+// /?fixture=menu&framework=react loads src/fixtures/menu/react.tsx, and
+// framework=octane-tsrx loads menu/octane-tsrx.tsrx.
+const fixtures = import.meta.glob("./fixtures/*/*.{ts,tsx,tsrx}")
 
 // Specs that check core's modules load them through the page, as the
 // instances the fixture uses, whether Vite serves the page or it's built. A

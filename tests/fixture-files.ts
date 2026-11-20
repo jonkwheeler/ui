@@ -15,7 +15,7 @@ const specRoot = fileURLToPath(new URL("specs/", import.meta.url))
 
 /** Whether the playground has `fixture` for `framework`, like "menu" for "react-ssr". */
 function hasFixture(fixture: string, framework: string) {
-  return ["ts", "tsx"].some((extension) =>
+  return ["ts", "tsx", "tsrx"].some((extension) =>
     existsSync(`${fixtureRoot}${fixture}/${framework}.${extension}`)
   )
 }

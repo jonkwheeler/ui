@@ -16,7 +16,7 @@ const solidFiles = [
   "**/examples/components/*/solid/**",
 ]
 // Octane has no include option: with requireDirective it compiles a project
-// file only when it opens with the octane jsxImportSource pragma.
+// .tsx only when it opens with the octane jsxImportSource pragma, and any .tsrx.
 const octaneFiles = [
   "**/packages/octane/**",
   "**/fixtures/*/octane*.tsx",

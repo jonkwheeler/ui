@@ -65,6 +65,35 @@ jobs:
           path: tests/test-results
           retention-days: 7
 
+  # The same specs against fixtures written as .tsrx templates, where children
+  # arrive as compiled bodies. The project holds only the converted fixtures.
+  tsrx:
+    name: Specs on .tsrx fixtures
+    if: github.repository != 'vercel-labs/ui' && github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          browsers: chromium
+
+      - name: Specs
+        working-directory: tests
+        env:
+          PLAYGROUND_PORT: "5300"
+          PLAYGROUND_BUILD: "1"
+        run: npx playwright test --project octane-tsrx
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: tsrx-test-results
+          path: tests/test-results
+          retention-days: 7
+
   # The adapter against the pair an app installs today: octane@latest and the
   # exact @tsrx/oxc it peers on. Two shards keep each under the config's
   # 25-minute global timeout.

@@ -64,9 +64,18 @@ const maxShards = 12
 const frameworks = ["react", "vue", "web", "solid", "svelte", "octane"]
 const engineProjects = ["web-webkit", "web-firefox"]
 
+/** A framework's base projects: Octane's specs run on its `.tsrx` fixtures too. */
+function baseProjects(framework) {
+  return framework === "octane" ? ["octane", "octane-tsrx"] : [framework]
+}
+
 /** A framework's Chromium projects, as tests/playwright.config.ts names them. */
 function chromiumProjects(framework) {
-  const projects = [framework, `${framework}-data`, `${framework}-sheet`]
+  const projects = [
+    ...baseProjects(framework),
+    `${framework}-data`,
+    `${framework}-sheet`,
+  ]
   if (framework !== "web") {
     projects.push(`${framework}-ssr`)
   }
@@ -302,7 +311,7 @@ function sharedSpecsByComponent() {
     }
     const files = readdirSync(path.join(fixtureRoot, folder), {
       recursive: true,
-    }).filter((file) => /\.(ts|tsx|vue|svelte)$/.test(file))
+    }).filter((file) => /\.(ts|tsx|tsrx|vue|svelte)$/.test(file))
     for (const file of files) {
       const text = readFileSync(path.join(fixtureRoot, folder, file), "utf8")
       for (const [, entry] of text.matchAll(/"@ui-sdk\/\w+\/([\w-]+)"/g)) {
@@ -476,6 +485,7 @@ function commands({ touched, shared }) {
   const runs = []
   // Base projects that run whole, which the touched specs needn't repeat.
   const whole = shared.size > 0 ? sharedFrameworks(shared) : []
+  const wholeProjects = whole.flatMap(baseProjects)
   // One run per set of frameworks, so components touched on the same ones share a run.
   const groups = new Map()
   for (const [component, reach] of touched) {
@@ -489,7 +499,7 @@ function commands({ touched, shared }) {
     const reach = key.split(",")
     const projects = reach
       .flatMap(chromiumProjects)
-      .filter((project) => !whole.includes(project))
+      .filter((project) => !wholeProjects.includes(project))
     if (flags.engines && reach.includes("web")) {
       projects.push(...engineProjects)
     }
@@ -524,7 +534,7 @@ function commands({ touched, shared }) {
     runs.push(["specs/leaks.spec.ts", ...projectArgs(leaks), ...grep])
   }
   if (whole.length > 0) {
-    runs.push(projectArgs(whole))
+    runs.push(projectArgs(wholeProjects))
   }
   return runs
 }

@@ -10,6 +10,7 @@ import {
 const port = process.env.PLAYGROUND_PORT ?? "5300"
 
 // *-ssr fixtures render to a string, then hydrate it. Vue, Svelte, Solid and Octane render theirs in Node.
+// octane-tsrx runs Octane's specs against fixtures written as `.tsrx` templates.
 const frameworks = [
   "react",
   "vue",
@@ -28,6 +29,7 @@ const frameworks = [
   "octane",
   "octane-data",
   "octane-ssr",
+  "octane-tsrx",
 ]
 
 // CI runs on 2-core Linux runners, so it uses one worker per core and retries timing

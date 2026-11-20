@@ -23,6 +23,7 @@ That loads `src/fixtures/menu/react.tsx`. Each fixture directory holds one file 
 - `react-ssr.tsx`: rendered to a string, then hydrated.
 - `vue-ssr.ts`: rendered in Node by the playground's `/__ssr` route, then hydrated, so its markup comes from Node's ICU as a real server's does.
 - `octane-ssr.tsx`: hydrates the `Fixture` from `octane.tsx`, which the `/__ssr` route renders in Node, since Octane compiles a module separately for the server.
+- `octane-tsrx.tsrx`: the app `octane.tsx` renders, written as Octane's `.tsrx` templates, where children reach a component as compiled bodies, not elements.
 
 A fixture exports `mount(root)`. When a framework has no fixture, the page sets `data-missing-fixture` and the spec skips itself.
 
