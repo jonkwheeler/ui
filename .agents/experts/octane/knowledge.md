@@ -24,7 +24,7 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 
 - Production builds memoize template regions and cache eligible `const` declarations keyed on the inputs they can see. The docs say an imported helper is "taken at its word". In 0.20.0 that applies only to imports with a memo proof (`isCompilerMemoImport`): `readIn(handle, () => ...)` compiles to a plain call, and the spike's built, production and dev runs gave identical results. If a later Octane version starts proving these imports, a `let` binding, a member call, or a witnessed snapshot input keeps the read live.
 - Non-literal props and children of JSX built in one place and rendered in another are read when the element renders, not when it's built.
-- **A hook called inside JSX children breaks.** In 0.20.0, `<Ctx value={v}>{usePart(...)}</Ctx>` compiles the call into the element's deferred children body. After the first render the hook isn't reached in its scope, so its effects are disconnected and its state updates never show, with no diagnostic. Call the hook into a `const` before `return`.
+- **A hook called inside JSX children breaks.** In 0.20.0, `<Ctx value={v}>{usePart(...)}</Ctx>` compiles the call into the element's deferred children body. After the first render the hook isn't reached in its scope, so its effects are disconnected and its state updates never show, with no diagnostic. Call the hook into a `const` before `return`. A hook in a JSX prop (`<Part field={useFieldControl()} />`) compiles inline in the render body and is fine.
 - Vite chooses the production compile path from `vite build`, not `NODE_ENV`, so a built playground and the dev server compile differently.
 
 ### Types

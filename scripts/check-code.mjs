@@ -134,6 +134,8 @@ const htmlSinkAllowlist = {
     "Parses its own markup, built from escaped text, in a template that never joins the page, to compare it with the server's.",
   "packages/react/src/token-input.tsx":
     "Writes the editor's markup, which core builds from escaped text.",
+  "packages/octane/src/token-input.tsx":
+    "Writes the editor's markup, which core builds from escaped text.",
   "packages/solid/src/token-input.tsx":
     "Writes the editor's markup, which core builds from escaped text.",
   "packages/svelte/src/token-input/token-input-editor.svelte":
@@ -141,6 +143,8 @@ const htmlSinkAllowlist = {
   "packages/vue/src/token-input.ts":
     "Writes the editor's markup, which core builds from escaped text.",
   "packages/react/src/preferences.tsx":
+    "Writes the script that shows saved preferences before paint. Core builds it from JSON with `<` escaped.",
+  "packages/octane/src/preferences.tsx":
     "Writes the script that shows saved preferences before paint. Core builds it from JSON with `<` escaped.",
   "packages/solid/src/preferences.tsx":
     "Writes the script that shows saved preferences before paint. Core builds it from JSON with `<` escaped.",
