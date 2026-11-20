@@ -37,6 +37,7 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 
 - JSX in `.tsx` stays inspectable descriptors, so `Children`, `cloneElement` and `isValidElement` work as in React.
 - Children written inside a `.tsrx` `@{...}` template arrive as compiled render bodies. A component that inspects children must be wrapped in `descriptorChildren(...)` to receive descriptors instead.
+- In a production build, children like text with an expression inside a `.map()` can arrive as a compiled children block: a function, but not a render function. Test a function child with `isChildrenBlock` before calling it. The dev path (and so Vitest) keeps descriptors, so only a built playground shows it.
 - The compiler only recognizes `const X = descriptorChildren(function X() {...})` at the top level, with `descriptorChildren` as a named import from `octane`. `React.descriptorChildren(...)` typechecks and runs but is silently ignored. The marker changes nothing for `.tsx` callers, so no `.tsx` spec can catch it missing.
 
 ### Server rendering and hydration
@@ -73,5 +74,5 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 - [ ] Text inputs listen with `onInput`; a controlled value without a handler doesn't warn.
 - [ ] A helper call that reads live instance state through a stable handle is checked on a built playground, not only the dev server.
 - [ ] A new root that inspects children is wrapped in `descriptorChildren`, as a top-level `const` with a named import.
-- [ ] Children that may be functions are typed `{} | null | fn`, not `ReactNode | fn`.
+- [ ] Children that may be functions are typed `{} | null | fn`, not `ReactNode | fn`, and called only through `isRenderFunction`.
 - [ ] A new `.tsx` file opens with the octane pragma.
