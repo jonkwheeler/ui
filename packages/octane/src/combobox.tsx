@@ -252,7 +252,7 @@ const ComboboxItem = parts.Item as <T = string>(
  * The item's text, with the part the input's text matched in `<mark>`. Without string content, it shows the item's label.
  * @stable
  */
-function ComboboxItemText({
+const ComboboxItemText = descriptorChildren(function ComboboxItemText({
   children,
   ...props
 }: PartProps<"span", ComboboxItemTextState>) {
@@ -272,7 +272,7 @@ function ComboboxItemText({
     { ...props, children: content },
     "span"
   )
-}
+})
 
 /**
  * An option that selects every item that matches, with `multiple`: in its group inside a `ComboboxGroup`, or in the whole list.

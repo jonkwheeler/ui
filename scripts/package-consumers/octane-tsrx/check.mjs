@@ -1,6 +1,6 @@
 // Builds this folder's .tsrx app against the packed @ui-sdk/octane and renders
-// it in Node. A .tsrx template passes children as render bodies, so the server
-// shows an item's label only when its root is marked `descriptorChildren`.
+// it in Node. A .tsrx template passes children as render bodies, so a part reads
+// them only when it's marked `descriptorChildren`: the roots and item texts.
 import { execFileSync } from "node:child_process"
 import {
   cpSync,
@@ -71,13 +71,13 @@ if (failures.length) {
   console.error(
     [
       ...failures,
-      "A .tsrx template passes its children as compiled render bodies, so `learnLabels` can read the items only when the root is wrapped in `descriptorChildren`.",
+      "A .tsrx template passes its children as compiled render bodies, so a root reads its items' labels, and an item text part its text, only when wrapped in `descriptorChildren`.",
     ].join("\n")
   )
   process.exit(1)
 }
 console.log(
-  "The .tsrx app's server markup shows the selected labels, and its client build succeeds."
+  "The .tsrx app's server markup shows the selected labels and each item's text, and its client build succeeds."
 )
 
 // Packs a package as it's published and unpacks it into the app's node_modules.
@@ -116,10 +116,32 @@ function check(html) {
       label: "France",
     },
   ]
-  return shown
-    .filter(({ text, label }) => text !== label)
-    .map(
-      ({ part, text, label }) =>
-        `The ${part} shows ${JSON.stringify(text)} on the server, not the selected item's label "${label}".`
-    )
+  const itemTexts = {
+    select: ["Basic plan", "Pro plan"],
+    combobox: ["Germany", "France"],
+    command: ["Copy text", "Paste text"],
+    autocomplete: ["Apple", "Banana"],
+  }
+  const texts = Object.entries(itemTexts).flatMap(([name, labels]) => {
+    const found = [
+      ...html.matchAll(
+        new RegExp(`data-slot="${name}-item-text"[^>]*>([^<]*)<`, "g")
+      ),
+    ].map((match) => match[1])
+    return labels
+      .filter((label) => !found.includes(label))
+      .map(
+        (label) =>
+          `The ${name}'s item text in a component of the app's own shows ${JSON.stringify(found)} on the server, without "${label}".`
+      )
+  })
+  return [
+    ...shown
+      .filter(({ text, label }) => text !== label)
+      .map(
+        ({ part, text, label }) =>
+          `The ${part} shows ${JSON.stringify(text)} on the server, not the selected item's label "${label}".`
+      ),
+    ...texts,
+  ]
 }

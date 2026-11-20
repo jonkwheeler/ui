@@ -369,7 +369,7 @@ const SelectItem = parts.Item as <T = string>(
  * The item's text, with the part the search matched in `<mark>`. Without string content, it shows the item's label.
  * @stable
  */
-function SelectItemText({
+const SelectItemText = descriptorChildren(function SelectItemText({
   children,
   ...props
 }: PartProps<"span", SelectItemTextState>) {
@@ -389,7 +389,7 @@ function SelectItemText({
     { ...props, children: content },
     "span"
   )
-}
+})
 
 /**
  * An option that selects every item that matches, with `multiple`: in its group inside a `SelectGroup`, or in the whole list.

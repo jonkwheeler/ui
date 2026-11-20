@@ -198,7 +198,7 @@ function CommandItem({
  * The command's text, with the part the search matched in `<mark>`. Without string content, it shows the command's label.
  * @stable
  */
-function CommandItemText({
+const CommandItemText = descriptorChildren(function CommandItemText({
   children,
   ...props
 }: PartProps<"span", CommandItemTextState>) {
@@ -218,7 +218,7 @@ function CommandItemText({
     { ...props, children: content },
     "span"
   )
-}
+})
 
 /**
  * An icon inside a command. Screen readers, typeahead and filtering skip it, and `mirror` flips it

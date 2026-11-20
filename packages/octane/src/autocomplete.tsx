@@ -224,7 +224,7 @@ const AutocompleteItem = parts.Item as (
  * The suggestion's text, with the part the field's text matched in `<mark>`. Without string content, it shows the suggestion's label.
  * @stable
  */
-function AutocompleteItemText({
+const AutocompleteItemText = descriptorChildren(function AutocompleteItemText({
   children,
   ...props
 }: PartProps<"span", AutocompleteItemTextState>) {
@@ -248,7 +248,7 @@ function AutocompleteItemText({
     { ...props, children: content },
     "span"
   )
-}
+})
 
 /**
  * An icon inside a suggestion. Screen readers, typeahead and filtering skip it, and `mirror` flips
