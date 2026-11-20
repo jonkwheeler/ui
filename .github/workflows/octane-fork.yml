@@ -1,13 +1,20 @@
 name: Octane (fork)
 
 # Fork-only checks for @ui-sdk/octane. The upstream PR leaves this file out.
+# A push runs every job but the canary, the schedule only the canary, and a
+# manual run all of them.
 on:
   push:
     branches: [octane-spike, feat/octane-adapter]
+  # Daily at 05:00 UTC. GitHub runs a schedule only from the copy of this file
+  # on the default branch.
+  schedule:
+    - cron: "0 5 * * *"
   workflow_dispatch:
 
+# The event is in the group, so the canary and a push never cancel each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -16,23 +23,32 @@ permissions:
 jobs:
   spike:
     name: Spike specs on a built playground
-    if: github.repository != 'vercel-labs/ui'
+    if: github.repository != 'vercel-labs/ui' && github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      # Full history, so the summary finds the upstream commit this one is on.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/setup
         with:
           browsers: chromium
 
+      # Octane's exports leave out package.json, so the versions come from the
+      # files, not `require("octane/package.json")`.
       - name: Record versions
         run: |
+          git fetch --quiet --no-tags https://github.com/vercel-labs/ui.git main
+          upstream=$(git merge-base HEAD FETCH_HEAD)
+          octane=$(node -p "require('./node_modules/octane/package.json').version")
+          oxc=$(node -p "require('./node_modules/@tsrx/oxc/package.json').version")
           {
             echo "commit: $(git rev-parse HEAD)"
-            echo "octane: $(node -p "require('octane/package.json').version")"
-            echo "@tsrx/oxc: $(node -p "require('@tsrx/oxc/package.json').version")"
+            echo "upstream (vercel-labs/ui main) merge base: $upstream"
+            echo "octane: $octane"
+            echo "@tsrx/oxc: $oxc"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Specs
@@ -48,3 +64,153 @@ jobs:
           name: spike-test-results
           path: tests/test-results
           retention-days: 7
+
+  # The adapter against the pair an app installs today: octane@latest and the
+  # exact @tsrx/oxc it peers on. Two shards keep each under the config's
+  # 25-minute global timeout.
+  canary:
+    name: Canary on octane@latest ${{ matrix.shard }}/2
+    if: github.repository != 'vercel-labs/ui' && github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          browsers: chromium
+
+      # The workspace waits a day before installing a release, which would keep
+      # the newest Octane out. This job alone skips the wait.
+      - name: Install octane@latest
+        run: |
+          octane=$(npm view octane@latest version)
+          oxc=$(npm view "octane@$octane" "peerDependencies.@tsrx/oxc")
+          sed -i -E \
+            -e "s/^  octane: .*/  octane: $octane/" \
+            -e "s|^  \"@tsrx/oxc\": .*|  \"@tsrx/oxc\": $oxc|" \
+            pnpm-workspace.yaml
+          pnpm install --no-frozen-lockfile --config.minimum-release-age=0
+          installed=$(node -p "require('./node_modules/octane/package.json').version")
+          installedOxc=$(node -p "require('./node_modules/@tsrx/oxc/package.json').version")
+          if [ "$installed" != "$octane" ] || [ "$installedOxc" != "$oxc" ]; then
+            echo "::error::Installed octane $installed and @tsrx/oxc $installedOxc, not $octane and $oxc."
+            exit 1
+          fi
+
+      - name: Record versions
+        run: |
+          git fetch --quiet --no-tags https://github.com/vercel-labs/ui.git main
+          upstream=$(git merge-base HEAD FETCH_HEAD)
+          octane=$(node -p "require('./node_modules/octane/package.json').version")
+          oxc=$(node -p "require('./node_modules/@tsrx/oxc/package.json').version")
+          {
+            echo "commit: $(git rev-parse HEAD)"
+            echo "upstream (vercel-labs/ui main) merge base: $upstream"
+            echo "octane: $octane (latest)"
+            echo "@tsrx/oxc: $oxc"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Specs
+        working-directory: tests
+        env:
+          PLAYGROUND_PORT: "5300"
+          PLAYGROUND_BUILD: "1"
+        run: npx playwright test --project octane --project octane-data --shard ${{ matrix.shard }}/2
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: canary-test-results-${{ matrix.shard }}
+          path: tests/test-results
+          retention-days: 7
+
+  # An app's own build sets NODE_ENV=production, which turns off development
+  # checks that CI's playground build keeps on.
+  production-smoke:
+    name: Spike specs on a production build
+    if: github.repository != 'vercel-labs/ui' && github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          browsers: chromium
+
+      - name: Production build
+        working-directory: apps/playground
+        env:
+          NODE_ENV: production
+        run: npx vite build
+
+      # The server is up before Playwright starts, so the config reuses it
+      # instead of building the playground again.
+      - name: Specs
+        working-directory: tests
+        env:
+          PLAYGROUND_PORT: "5300"
+          PLAYGROUND_SERVED: "1"
+        run: |
+          pnpm --filter playground preview &
+          curl --silent --fail --retry 30 --retry-delay 1 --retry-connrefused --output /dev/null "http://localhost:$PLAYGROUND_PORT"
+          npx playwright test specs/menu specs/select specs/combobox specs/tree specs/popover specs/octane --project octane
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: production-test-results
+          path: tests/test-results
+          retention-days: 7
+
+  portal:
+    name: Portal specs on a built playground
+    if: github.repository != 'vercel-labs/ui' && github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          browsers: chromium
+
+      - name: Specs
+        working-directory: tests
+        env:
+          PLAYGROUND_PORT: "5300"
+          PLAYGROUND_BUILD: "1"
+        run: npx playwright test -c playwright.octane-fork.config.ts --project octane-portal
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: portal-test-results
+          path: tests/test-results
+          retention-days: 7
+
+  tsrx-consumer:
+    name: .tsrx consumer
+    if: github.repository != 'vercel-labs/ui' && github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      - name: Build packages
+        run: pnpm --filter @ui-sdk/core --filter @ui-sdk/octane build
+
+      - name: Server-render a .tsrx app
+        run: node scripts/package-consumers/octane-tsrx/check.mjs
