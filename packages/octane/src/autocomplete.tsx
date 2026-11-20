@@ -38,6 +38,7 @@ import {
   usePrimitive,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(autocompletePrimitive, {
   label: "label",
@@ -180,7 +181,7 @@ function AutocompleteContent({
   const body = (state: AutocompleteContentState) => (
     <>
       {sheetHeader(autocomplete, setHeader)}
-      {typeof children === "function"
+      {isRenderFunction(children)
         ? children(state)
         : (children ??
           (state.items && autocomplete.state.items && <AutocompleteList />))}
@@ -237,10 +238,9 @@ function AutocompleteItemText({
     id: item.value as string,
     text: textToMark(children, (item.label ?? item.value) as string),
   }
-  const content =
-    typeof children === "function"
-      ? children
-      : (state: AutocompleteItemTextState) => markSegments(state.segments)
+  const content = isRenderFunction(children)
+    ? children
+    : (state: AutocompleteItemTextState) => markSegments(state.segments)
   return usePart(
     autocompletePrimitive,
     "item-text",
@@ -284,11 +284,7 @@ function AutocompleteEmpty({
   ...props
 }: PartProps<"div", AutocompleteEmptyState>) {
   const content = (state: AutocompleteEmptyState) =>
-    typeof children === "function"
-      ? children(state)
-      : state.empty
-        ? children
-        : null
+    isRenderFunction(children) ? children(state) : state.empty ? children : null
   return usePart(
     autocompletePrimitive,
     "empty",

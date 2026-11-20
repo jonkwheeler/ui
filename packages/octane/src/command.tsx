@@ -27,6 +27,7 @@ import {
   usePrimitive,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(commandPrimitive, {
   input: "input",
@@ -117,7 +118,7 @@ const Command = descriptorChildren(function Command({
   )
   const own = placed || found
   const content = (state: CommandState) =>
-    typeof children === "function" ? (
+    isRenderFunction(children) ? (
       <Placed value={place}>{children(state)}</Placed>
     ) : (
       <>
@@ -145,7 +146,7 @@ function CommandList({
   usePlaceContent()
   const command = useCommand()
   const content = (state: CommandListState) =>
-    typeof children === "function"
+    isRenderFunction(children)
       ? children(state)
       : (children ??
         (command.state.items ? <CommandItems items={state.items} /> : null))
@@ -207,10 +208,9 @@ function CommandItemText({
   }
   const label = (item.label as string | undefined) ?? (item.value as string)
   const part = { id: item.value as string, text: textToMark(children, label) }
-  const content =
-    typeof children === "function"
-      ? children
-      : (state: CommandItemTextState) => markSegments(state.segments)
+  const content = isRenderFunction(children)
+    ? children
+    : (state: CommandItemTextState) => markSegments(state.segments)
   return usePart(
     commandPrimitive,
     "item-text",
@@ -289,11 +289,7 @@ function CommandEmpty({
   ...props
 }: PartProps<"div", CommandEmptyState>) {
   const content = (state: CommandEmptyState) =>
-    typeof children === "function"
-      ? children(state)
-      : state.empty
-        ? children
-        : null
+    isRenderFunction(children) ? children(state) : state.empty ? children : null
   return usePart(commandPrimitive, "empty", {}, { ...props, children: content })
 }
 

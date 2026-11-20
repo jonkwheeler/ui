@@ -38,6 +38,7 @@ import {
   type PartProps,
   type PrimitiveHandle,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(datePickerPrimitive, { clear: "button" })
 
@@ -172,7 +173,7 @@ function DatePicker({
             <DatePickerTrigger />
             <DatePickerContent />
           </>
-        ) : typeof children === "function" ? (
+        ) : isRenderFunction(children) ? (
           children(state)
         ) : (
           children

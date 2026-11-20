@@ -10,6 +10,7 @@ import {
 import * as React from "octane"
 import { controlRender, FieldContext, useJoinField } from "./field-context"
 import { usePart, usePrimitive, type PartProps } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const ItemContext = React.createContext<{ index: number; step: number } | null>(
   null
@@ -112,7 +113,7 @@ function RatingItem({
       ...props,
       children: (state: RatingItemState) => (
         <>
-          {typeof children === "function" ? children(state) : children}
+          {isRenderFunction(children) ? children(state) : children}
           {radios}
         </>
       ),

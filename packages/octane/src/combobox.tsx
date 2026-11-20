@@ -65,6 +65,7 @@ import {
 } from "./use-primitive"
 import { FormInputs } from "./form-inputs"
 import { ListItems, type ListParts } from "./list-items"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(comboboxPrimitive, {
   label: "label",
@@ -208,7 +209,7 @@ function ComboboxContent({
   const body = (state: ComboboxContentState) => (
     <>
       {sheetHeader(combobox, setHeader)}
-      {typeof children === "function"
+      {isRenderFunction(children)
         ? children(state)
         : (children ??
           (state.items && combobox.state.items && <ComboboxList />))}
@@ -261,10 +262,9 @@ function ComboboxItemText({
   }
   const label = (item.label as string | undefined) ?? (item.value as string)
   const part = { id: item.value as string, text: textToMark(children, label) }
-  const content =
-    typeof children === "function"
-      ? children
-      : (state: ComboboxItemTextState) => markSegments(state.segments)
+  const content = isRenderFunction(children)
+    ? children
+    : (state: ComboboxItemTextState) => markSegments(state.segments)
   return usePart(
     comboboxPrimitive,
     "item-text",
@@ -389,11 +389,7 @@ function ComboboxEmpty({
   ...props
 }: PartProps<"div", ComboboxEmptyState>) {
   const content = (state: ComboboxEmptyState) =>
-    typeof children === "function"
-      ? children(state)
-      : state.empty
-        ? children
-        : null
+    isRenderFunction(children) ? children(state) : state.empty ? children : null
   return usePart(
     comboboxPrimitive,
     "empty",
@@ -429,9 +425,7 @@ function ComboboxValue({
   // Its state, without an element.
   const value = (_props: unknown, state: ComboboxValueState) => (
     <>
-      {typeof children === "function"
-        ? children(state)
-        : (children ?? state.label)}
+      {isRenderFunction(children) ? children(state) : (children ?? state.label)}
     </>
   )
   return usePart(

@@ -20,6 +20,7 @@ import {
   usePrimitive,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(fileInput, { trigger: "button", dropzone: "div" })
 
@@ -99,7 +100,7 @@ function FileInput({
   useControllerEntry(controller, handle)
   const content = (current: FileInputState) => (
     <>
-      {typeof children === "function" ? children(current) : children}
+      {isRenderFunction(children) ? children(current) : children}
       <HiddenInput />
     </>
   )

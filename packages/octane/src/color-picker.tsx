@@ -7,7 +7,7 @@ import {
 } from "@ui-sdk/core/color-picker"
 import * as React from "octane"
 import { controlRender, useFieldControl } from "./field-context"
-import { renderElement } from "./render-element"
+import { isRenderFunction, renderElement } from "./render-element"
 import {
   createParts,
   usePart,
@@ -94,7 +94,7 @@ function ColorPicker({
     ...props,
     children: (state: ColorPickerState) => (
       <>
-        {typeof children === "function" ? children(state) : children}
+        {isRenderFunction(children) ? children(state) : children}
         <HiddenInput />
       </>
     ),

@@ -57,6 +57,7 @@ import {
 } from "./use-primitive"
 import { FormInputs } from "./form-inputs"
 import { ListItems, type ListParts } from "./list-items"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(selectPrimitive, {
   label: "div",
@@ -250,7 +251,7 @@ function ValuePart({
   const select = useSelect()
   const { placeholder } = part
   const content = (state: SelectValueState) =>
-    typeof children === "function"
+    isRenderFunction(children)
       ? children(state)
       : (children ??
         (state.placeholder
@@ -301,7 +302,7 @@ function SelectContent({
   // Reading the part's state subscribes, so items that arrive after the
   // select rendered still render. `select.state` doesn't subscribe.
   const body = (state: SelectContentState) =>
-    typeof children === "function"
+    isRenderFunction(children)
       ? children(state)
       : (children ??
         (state.items && select.state.items && (
@@ -346,11 +347,7 @@ function SelectEmpty({
   ...props
 }: PartProps<"div", SelectEmptyState>) {
   const content = (state: SelectEmptyState) =>
-    typeof children === "function"
-      ? children(state)
-      : state.empty
-        ? children
-        : null
+    isRenderFunction(children) ? children(state) : state.empty ? children : null
   return usePart(selectPrimitive, "empty", {}, { ...props, children: content })
 }
 
@@ -382,10 +379,9 @@ function SelectItemText({
   }
   const label = (item.label as string | undefined) ?? (item.value as string)
   const part = { id: item.value as string, text: textToMark(children, label) }
-  const content =
-    typeof children === "function"
-      ? children
-      : (state: SelectItemTextState) => markSegments(state.segments)
+  const content = isRenderFunction(children)
+    ? children
+    : (state: SelectItemTextState) => markSegments(state.segments)
   return usePart(
     selectPrimitive,
     "item-text",

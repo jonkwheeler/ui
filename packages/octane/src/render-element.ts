@@ -7,6 +7,15 @@ function prevented(event: unknown) {
     ?.defaultPrevented
 }
 
+// Octane compiles some children, like text written in a list in a production
+// build, into a block that is a function but not a render function of state.
+// check-code: allow return-type a type predicate narrows children for callers.
+function isRenderFunction<T>(
+  children: T
+): children is Extract<T, (...args: any[]) => unknown> {
+  return typeof children === "function" && !React.isChildrenBlock(children)
+}
+
 /**
  * Later props win, except where they combine: className, style and ref, and
  * event handlers, where the later one runs first and can call
@@ -139,7 +148,7 @@ function renderElement<State>(
   if (typeof props.style === "function") {
     props = { ...props, style: props.style(state) }
   }
-  if (typeof props.children === "function") {
+  if (isRenderFunction(props.children)) {
     props = { ...props, children: props.children(state) }
   }
   if (typeof render === "function") {
@@ -155,4 +164,10 @@ function renderElement<State>(
   return React.createElement(tag, props)
 }
 
-export { mergeProps, mergeRefs, renderElement, type RenderProp }
+export {
+  isRenderFunction,
+  mergeProps,
+  mergeRefs,
+  renderElement,
+  type RenderProp,
+}

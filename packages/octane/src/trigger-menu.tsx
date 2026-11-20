@@ -32,6 +32,7 @@ import {
   usePrimitive,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(triggerMenuPrimitive, {
   input: "textarea",
@@ -191,11 +192,7 @@ function TriggerMenuEmpty({
   ...props
 }: PartProps<"div", TriggerMenuEmptyState>) {
   const content = (state: TriggerMenuEmptyState) =>
-    typeof children === "function"
-      ? children(state)
-      : state.empty
-        ? children
-        : null
+    isRenderFunction(children) ? children(state) : state.empty ? children : null
   return usePart(
     triggerMenuPrimitive,
     "empty",

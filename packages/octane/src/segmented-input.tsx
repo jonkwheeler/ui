@@ -15,6 +15,7 @@ import {
   type PartProps,
   type usePrimitive,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 type RootProps = Omit<
   PartProps<"div", DateInputState>,
@@ -74,7 +75,7 @@ function useSegmentedRoot(
         ? state.segments.map((segment) => (
             <Segment key={segment.key} segment={segment} />
           ))
-        : typeof children === "function"
+        : isRenderFunction(children)
           ? children(state)
           : children}
       <HiddenInput primitive={primitive} />

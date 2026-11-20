@@ -56,6 +56,7 @@ import {
   usePrimitive,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(menuPrimitive, {
   trigger: "button",
@@ -292,7 +293,7 @@ function MenuItem({
   }
   const content = (state: MenuItemState) => (
     <>
-      {typeof children === "function" ? children(state) : children}
+      {isRenderFunction(children) ? children(state) : children}
       {shortcut && (
         <MenuShortcut>
           {formatShortcut(shortcut, menu.state.apple)}

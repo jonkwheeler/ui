@@ -18,6 +18,7 @@ import {
 } from "./use-primitive"
 import { FormInputs } from "./form-inputs"
 import { ListItems, type ListParts } from "./list-items"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(listboxPrimitive, {
   item: "div",
@@ -103,7 +104,7 @@ function Listbox<T = string, Multiple extends boolean | undefined = false>({
   } as ListboxOptions<any, any>)
   // Without children, a data listbox renders its items.
   const content = (state: ListboxState) =>
-    typeof children === "function"
+    isRenderFunction(children)
       ? children(state)
       : (children ?? (items && <ListboxItems items={state.items} />))
   // The props left once the options are taken out, which TypeScript can't see for every `Multiple`.

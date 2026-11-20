@@ -15,6 +15,7 @@ import {
   usePart,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(otpInput, {
   root: "div",
@@ -45,7 +46,7 @@ function withInput<State>(
 ) {
   return (state: State) => (
     <>
-      {typeof children === "function" ? children(state) : children}
+      {isRenderFunction(children) ? children(state) : children}
       {input}
     </>
   )

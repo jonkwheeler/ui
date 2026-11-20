@@ -76,3 +76,19 @@ test("a part renders children that hold an <Activity>", async () => {
   await act(async () => root!.render(<Page mode="visible" />))
   expect(container.querySelector("span")?.textContent).toBe("shown")
 })
+
+test("a part renders text children written inside a list", async () => {
+  function Page() {
+    return (
+      <div>
+        {[1, 2].map((n) => (
+          <Field key={n}>Item {n}</Field>
+        ))}
+      </div>
+    )
+  }
+  const container = document.body.appendChild(document.createElement("div"))
+  root = createRoot(container)
+  await act(async () => root!.render(<Page />))
+  expect(container.textContent).toBe("Item 1Item 2")
+})

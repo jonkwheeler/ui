@@ -21,6 +21,7 @@ import {
   type PartProps,
   type PrimitiveHandle,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(sliderPrimitive, {
   control: "div",
@@ -56,7 +57,7 @@ function withAfter<State>(
 ) {
   return (state: State) => (
     <>
-      {typeof children === "function" ? children(state) : children}
+      {isRenderFunction(children) ? children(state) : children}
       {after}
     </>
   )

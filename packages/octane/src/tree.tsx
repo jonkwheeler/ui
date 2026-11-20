@@ -20,6 +20,7 @@ import {
   usePrimitive,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(treePrimitive, {
   label: "span",
@@ -140,7 +141,7 @@ const TreeItem = descriptorChildren(function TreeItem({
     // A branch is one with a group among its children.
     branch:
       branch ??
-      (typeof children === "function"
+      (isRenderFunction(children)
         ? undefined
         : hasChild(children, TreeGroup) || undefined),
     disabled,

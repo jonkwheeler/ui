@@ -21,6 +21,7 @@ import {
   type PartProps,
   type PrimitiveHandle,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(numberInputPrimitive, {
   group: "div",
@@ -107,7 +108,7 @@ function NumberInput({
   useControllerEntry(controller, context)
   const content = (current: NumberInputState) => (
     <>
-      {typeof children === "function" ? children(current) : children}
+      {isRenderFunction(children) ? children(current) : children}
       <HiddenInput />
     </>
   )

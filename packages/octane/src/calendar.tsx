@@ -20,6 +20,7 @@ import {
   usePrimitive,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 function useCalendar(part: string) {
   const context = React.useContext(CalendarContext)
@@ -247,7 +248,7 @@ function CalendarGrid({
   // Grids are told apart by their offset. The parts inside read the grid's state.
   const content = (state: CalendarGridState) => (
     <GridScope offset={offset} state={state}>
-      {typeof children === "function" ? children(state) : children}
+      {isRenderFunction(children) ? children(state) : children}
     </GridScope>
   )
   return usePart(

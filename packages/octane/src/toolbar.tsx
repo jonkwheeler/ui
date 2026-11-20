@@ -14,6 +14,7 @@ import {
   usePrimitive,
   type PartProps,
 } from "./use-primitive"
+import { isRenderFunction } from "./render-element"
 
 const parts = createParts(toolbar, {
   button: "button",
@@ -78,7 +79,7 @@ function ToolbarGroup({
   // Toggles inside read whether the group is disabled from context.
   const content = (state: ToolbarGroupState) => (
     <ToolbarGroupContext value={state.disabled}>
-      {typeof children === "function" ? children(state) : children}
+      {isRenderFunction(children) ? children(state) : children}
     </ToolbarGroupContext>
   )
   return usePart(
