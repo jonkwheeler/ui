@@ -2,7 +2,7 @@
 
 What the Octane expert knows. Part 1 is Octane itself, part 2 is how `@ui-sdk/octane` is built, part 3 is the checklist a review walks. Pinned to what the repo installs: `octane` 0.20.0 with its exact peer `@tsrx/oxc` 0.23.0 (peer range `>=0.20.0`). Octane ships breaking 0.x minors often; when one changes an API below, update this file.
 
-Last checked: 2026-11-19, against `node_modules/octane` 0.20.0 (`dist/*.d.ts`) and Octane's `docs/differences-from-react.md` on `main` (0.21.0).
+Last checked: 2026-11-20, against `node_modules/octane` 0.20.0 (`dist/*.d.ts`) and Octane's `docs/differences-from-react.md` on `main` (0.21.0).
 
 ## 1. Octane, as its docs write it
 
@@ -18,6 +18,7 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 | `react-dom` `createPortal`, `flushSync` | Both come from `octane`.                                                                                                     |
 | `StrictMode` double-invokes             | `StrictMode` is a pass-through. No double render, no effect replay.                                                          |
 | `Profiler`, `forwardRef`, `createRef`   | Not implemented. Refs are props; callback, object and array refs all work, and a callback ref may return a cleanup.          |
+| `style` object, `className` string      | Also `style` as text, `className` as clsx-style class values, and DOM spellings like `autocomplete` beside `autoComplete`.   |
 | Server Components, `"use client"`       | No Server Components. The directive means nothing.                                                                           |
 
 ### Rendering and memoization
@@ -42,8 +43,8 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 
 ### Server rendering and hydration
 
-- `octane/server` `renderToString(Component, props?, options?)` returns `{ html, css }`. Server code is compiled separately from client code, so a module graph compiled for the browser can't render on the server.
-- `hydrateRoot(container, Component, props?, options?)` takes the component. `useId` matches across server and client when both use the same `identifierPrefix`; `createRoot` adds an `r<n>-` namespace.
+- `octane/server` `renderToString(Component, props?, options?)` returns `{ html, css }`, and takes an element in place of the component. Server code is compiled separately from client code, so a module graph compiled for the browser can't render on the server.
+- `hydrateRoot(container, Component, props?, options?)` takes the component, or an element. `useId` matches across server and client when both use the same `identifierPrefix`; `createRoot` adds an `r<n>-` namespace.
 - Mismatches behave as in React 19: attributes aren't patched, a structural or text mismatch re-renders the nearest boundary on the client, and `onRecoverableError` fires once per boundary.
 
 ### Compiler ownership
@@ -57,8 +58,9 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 - Every `.tsx` file opens with the `@jsxImportSource octane` pragma, for the compiler and for consumers whose tsconfig targets React.
 - Core's `input` handler maps to `onInput`. Native events go straight to core.
 - `propNames`, `booleans` and `styleObject` stay: core writes some inline styles itself, and a style string would replace them.
+- `mergeProps`, `mergeRefs` and `yieldToAuthor`'s check take every prop shape Octane accepts: a style as text, class values, ref arrays and DOM attribute spellings.
 - Effects that must run every commit, such as the one that flushes `runBindWrites`, pass `null` deps.
-- Roots that call `hasChild` or `learnLabels` (`Menu`, `Select`, `Combobox`, `TreeItem`, and later `TriggerMenu`, `Autocomplete`, `Command`) are wrapped in `descriptorChildren`. `Field` clones its `render` prop, not its children, and props keep descriptors, so it needs no marker.
+- Parts that read their children are wrapped in `descriptorChildren`: the roots that call `hasChild` or `learnLabels` (`Menu`, `Select`, `Combobox`, `TreeItem`, `TriggerMenu`, `Autocomplete`, `Command`), and the item texts that mark matches (`SelectItemText`, `ComboboxItemText`, `CommandItemText`, `AutocompleteItemText`). `Field` clones its `render` prop, not its children, and props keep descriptors, so it needs no marker.
 - `usePart` and other hooks are called into a `const` before `return`, never inside JSX children.
 - The package ships `.tsx` and `.ts` source with `octane` as a peer and no build step of its own.
 - Octane's synchronous `act()` stays open while it drains, so work a microtask later never warns. The warning is off by default; `setIsOctaneActEnvironment(true)` from `octane` turns it on. A test that checks work lands inside `act()` compares the container before and after instead of waiting for a warning.
@@ -73,6 +75,7 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 - [ ] Every `useEffect` / `useLayoutEffect` without a deps array is meant to infer; one that must run every commit passes `null`.
 - [ ] Text inputs listen with `onInput`; a controlled value without a handler doesn't warn.
 - [ ] A helper call that reads live instance state through a stable handle is checked on a built playground, not only the dev server.
-- [ ] A new root that inspects children is wrapped in `descriptorChildren`, as a top-level `const` with a named import.
+- [ ] A new part that inspects its children is wrapped in `descriptorChildren`, as a top-level `const` with a named import.
+- [ ] Code that merges or reads author props handles a style as text, class values, ref arrays and DOM attribute spellings.
 - [ ] Children that may be functions are typed `{} | null | fn`, not `ReactNode | fn`, and called only through `isRenderFunction`.
 - [ ] A new `.tsx` file opens with the octane pragma.
