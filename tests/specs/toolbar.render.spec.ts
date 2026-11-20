@@ -1,4 +1,4 @@
-import { expect, expectFocus, lastAction, test } from "../fixtures"
+import { expect, expectFocus, lastAction, reactApi, test } from "../fixtures"
 
 // Parts render as any element, through `render` in React, the `render`
 // slot in Vue, and the wrapped element on web components.
@@ -55,8 +55,8 @@ test.describe("custom rendering", () => {
     tab,
   }) => {
     test.skip(
-      !framework.startsWith("react"),
-      "Only React parts render by the state they read."
+      !reactApi(framework),
+      "Only React and Octane parts render by the state they read."
     )
     const renders = () =>
       page.evaluate(() => ({

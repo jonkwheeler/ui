@@ -1,4 +1,4 @@
-import { expect, lastAction, test } from "../fixtures"
+import { expect, lastAction, reactApi, test } from "../fixtures"
 
 // Parts render as any element, through `render` in React, the `render`
 // slot in Vue, and `as-child` on web components.
@@ -70,8 +70,8 @@ test.describe("custom rendering", () => {
     framework,
   }) => {
     test.skip(
-      !framework.startsWith("react"),
-      "Only React parts render by the state they read."
+      !reactApi(framework),
+      "Only React and Octane parts render by the state they read."
     )
     const renders = () =>
       page.evaluate(() => ({
