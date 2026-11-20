@@ -38,6 +38,7 @@ import {
   mergeProps,
   mergeRefs,
   renderElement,
+  styleObject,
   type RenderProp,
 } from "./render-element"
 
@@ -68,36 +69,6 @@ const booleans = new Set([
   "checked",
   "multiple",
 ])
-
-// Parts render the same few styles again and again, so each text is parsed
-// once, into an object Octane only reads. The cache empties when it fills,
-// since a drag writes a new position on every move.
-const styles = new Map<string, Record<string, string>>()
-
-function styleObject(css: string) {
-  let style = styles.get(css)
-  if (style) {
-    return style
-  }
-  style = {}
-  for (const declaration of css.split(";")) {
-    const index = declaration.indexOf(":")
-    if (index === -1) {
-      continue
-    }
-    const name = declaration.slice(0, index).trim()
-    style[
-      name.startsWith("--")
-        ? name
-        : name.replace(/-(\w)/g, (_, char: string) => char.toUpperCase())
-    ] = declaration.slice(index + 1).trim()
-  }
-  if (styles.size >= 500) {
-    styles.clear()
-  }
-  styles.set(css, style)
-  return style
-}
 
 // DOM event names to Octane prop names.
 const eventProps: Record<string, string> = /* @__PURE__ */ Object.assign(
@@ -546,7 +517,8 @@ function elementProps(
   }
   const own = yieldToAuthor(
     attrs(part, props as never, state),
-    (name) => user[propNames[name] ?? name] != null
+    // Octane also takes the DOM's own spelling, like `autocomplete`.
+    (name) => (user[propNames[name] ?? name] ?? user[name]) != null
   )
   return mergeProps(handlers, user, toOctaneProps(own), {
     id: user.id,

@@ -16,6 +16,36 @@ function isRenderFunction<T>(
   return typeof children === "function" && !React.isChildrenBlock(children)
 }
 
+// Parts render the same few styles again and again, so each text is parsed
+// once, into an object Octane only reads. The cache empties when it fills,
+// since a drag writes a new position on every move.
+const styles = new Map<string, Record<string, string>>()
+
+function styleObject(css: string) {
+  let style = styles.get(css)
+  if (style) {
+    return style
+  }
+  style = {}
+  for (const declaration of css.split(";")) {
+    const index = declaration.indexOf(":")
+    if (index === -1) {
+      continue
+    }
+    const name = declaration.slice(0, index).trim()
+    style[
+      name.startsWith("--")
+        ? name
+        : name.replace(/-(\w)/g, (_, char: string) => char.toUpperCase())
+    ] = declaration.slice(index + 1).trim()
+  }
+  if (styles.size >= 500) {
+    styles.clear()
+  }
+  styles.set(css, style)
+  return style
+}
+
 /**
  * Later props win, except where they combine: className, style and ref, and
  * event handlers, where the later one runs first and can call
@@ -34,7 +64,11 @@ function mergeProps(...sources: Record<string, any>[]) {
       if (earlier === undefined) {
         result[key] = value
       } else if (key === "className" && earlier) {
-        result.className = `${earlier} ${value}`
+        // Octane composes an array of class values, like clsx.
+        result.className =
+          typeof earlier === "string" && typeof value === "string"
+            ? `${earlier} ${value}`
+            : [earlier, value]
       } else if (key === "style" && earlier) {
         result.style = mergeStyles(earlier, value)
       } else if (key === "ref" && earlier) {
@@ -59,13 +93,16 @@ function mergeProps(...sources: Record<string, any>[]) {
 }
 
 // Styles merge, and a function of the part's state stays a function, so a
-// part's own inline styles never drop a user's style function.
+// part's own inline styles never drop a user's style function. Octane also
+// takes a style as text.
 function mergeStyles(earlier: unknown, later: unknown) {
-  if (typeof earlier !== "function" && typeof later !== "function") {
-    return { ...(earlier as object), ...(later as object) }
+  const resolve = (style: unknown, state?: unknown) => {
+    const value = typeof style === "function" ? style(state) : style
+    return typeof value === "string" ? styleObject(value) : value
   }
-  const resolve = (style: unknown, state: unknown) =>
-    typeof style === "function" ? style(state) : style
+  if (typeof earlier !== "function" && typeof later !== "function") {
+    return { ...resolve(earlier), ...resolve(later) }
+  }
   return (state: unknown) => ({
     ...resolve(earlier, state),
     ...resolve(later, state),
@@ -101,13 +138,13 @@ function mergeRefs(a: React.Ref<unknown>, b: React.Ref<unknown>) {
   }
   let merged = inner.get(b)
   if (!merged) {
+    // Octane also takes an array of refs.
+    const refs = [a, b].flat() as React.Ref<unknown>[]
     merged = (el: unknown) => {
-      const cleanups = [setRef(a, el), setRef(b, el)]
+      const cleanups = refs.map((ref) => setRef(ref, el))
       return () =>
         cleanups.forEach((cleanup, index) =>
-          typeof cleanup === "function"
-            ? cleanup()
-            : setRef(index ? b : a, null)
+          typeof cleanup === "function" ? cleanup() : setRef(refs[index], null)
         )
     }
     inner.set(b, merged)
@@ -169,5 +206,6 @@ export {
   mergeProps,
   mergeRefs,
   renderElement,
+  styleObject,
   type RenderProp,
 }
