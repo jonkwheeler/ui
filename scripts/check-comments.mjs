@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 
 const maxLines = 3
-const sourceFile = /\.(ts|tsx|mts|js|mjs|vue|svelte)$/
+const sourceFile = /\.(ts|tsx|tsrx|mts|js|mjs|vue|svelte)$/
 const toolDirective =
   /^(\/\/\/|\/\/\s*(eslint|@ts-|check-code:|svelte-ignore|prettier-ignore))|^<!--\s*svelte-ignore|@__PURE__/
 const exampleCode = /^examples\/(?!scripts\/|experiments\/)[^/]+\/[^/]+\//

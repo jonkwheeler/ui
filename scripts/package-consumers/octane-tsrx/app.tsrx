@@ -33,29 +33,45 @@ import {
 
 function PlanItems() @{
   <>
-    <SelectItem value="basic"><SelectItemText>Basic plan</SelectItemText></SelectItem>
-    <SelectItem value="pro"><SelectItemText>Pro plan</SelectItemText></SelectItem>
+    <SelectItem value="basic">
+      <SelectItemText>Basic plan</SelectItemText>
+    </SelectItem>
+    <SelectItem value="pro">
+      <SelectItemText>Pro plan</SelectItemText>
+    </SelectItem>
   </>
 }
 
 function CountryItems() @{
   <>
-    <ComboboxItem value="de"><ComboboxItemText>Germany</ComboboxItemText></ComboboxItem>
-    <ComboboxItem value="fr"><ComboboxItemText>France</ComboboxItemText></ComboboxItem>
+    <ComboboxItem value="de">
+      <ComboboxItemText>Germany</ComboboxItemText>
+    </ComboboxItem>
+    <ComboboxItem value="fr">
+      <ComboboxItemText>France</ComboboxItemText>
+    </ComboboxItem>
   </>
 }
 
 function ActionItems() @{
   <>
-    <CommandItem value="copy"><CommandItemText>Copy text</CommandItemText></CommandItem>
-    <CommandItem value="paste"><CommandItemText>Paste text</CommandItemText></CommandItem>
+    <CommandItem value="copy">
+      <CommandItemText>Copy text</CommandItemText>
+    </CommandItem>
+    <CommandItem value="paste">
+      <CommandItemText>Paste text</CommandItemText>
+    </CommandItem>
   </>
 }
 
 function FruitItems() @{
   <>
-    <AutocompleteItem value="ap"><AutocompleteItemText>Apple</AutocompleteItemText></AutocompleteItem>
-    <AutocompleteItem value="ba"><AutocompleteItemText>Banana</AutocompleteItemText></AutocompleteItem>
+    <AutocompleteItem value="ap">
+      <AutocompleteItemText>Apple</AutocompleteItemText>
+    </AutocompleteItem>
+    <AutocompleteItem value="ba">
+      <AutocompleteItemText>Banana</AutocompleteItemText>
+    </AutocompleteItem>
   </>
 }
 

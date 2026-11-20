@@ -62,7 +62,8 @@
 // - exports-at-end: a module declares everything without `export` and lists
 //   its exports once, at its end, so one look shows a file's whole surface.
 //   Re-exports and a default export go at the end too. Covers every .ts, .tsx,
-//   .js and .mjs file but .d.ts files and the paths in `exportsAtEndSkips`.
+//   .tsrx, .js and .mjs file but .d.ts files and the paths in
+//   `exportsAtEndSkips`. A .tsrx template is read by line, not parsed.
 // - renderer-imports: the renderers (`renderers`) never import
 //   `@ui-sdk/core/internal`. What they need that isn't public comes from
 //   `@ui-sdk/core/renderer`, a checked list of its own.
@@ -714,7 +715,9 @@ function checkExportsAtEnd() {
     .split("\0")
     .filter(
       (file) =>
-        /\.(tsx?|m?js)$/.test(file) && !file.endsWith(".d.ts") && !skipped(file)
+        /\.(tsx?|tsrx|m?js)$/.test(file) &&
+        !file.endsWith(".d.ts") &&
+        !skipped(file)
     )
   for (const file of files) {
     const absolute = path.join(root, file)
@@ -723,6 +726,10 @@ function checkExportsAtEnd() {
     }
     const text = readFileSync(absolute, "utf8")
     if (!/^export\b/m.test(text)) {
+      continue
+    }
+    if (file.endsWith(".tsrx")) {
+      checkTsrxExportsAtEnd(file, text)
       continue
     }
     const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true)
@@ -760,6 +767,34 @@ function checkExportsAtEnd() {
       }
     })
   }
+}
+
+// TypeScript can't parse a `.tsrx` template, so its exports are read by line.
+// The formatter starts every top-level statement in column 0.
+function checkTsrxExportsAtEnd(file, text) {
+  const lines = text.split("\n")
+  const declares =
+    /^export\s+(default\s+)?(async\s+)?(function|const|let|var|class|interface|enum|type\s+\w+\s*[=<])/
+  const statement = /^(?!export\b|[\s})\]]|\/[/*]|$)/
+  const lastStatement = lines.findLastIndex((line) => statement.test(line))
+  lines.forEach((line, index) => {
+    if (declares.test(line)) {
+      violations.push({
+        file,
+        line: index + 1,
+        rule: "exports-at-end",
+        message:
+          "declare it without `export` and add it to the `export { }` list at the end of the file.",
+      })
+    } else if (/^export\b/.test(line) && index < lastStatement) {
+      violations.push({
+        file,
+        line: index + 1,
+        rule: "exports-at-end",
+        message: "move it to the end of the file, with the other exports.",
+      })
+    }
+  })
 }
 
 function checkPublicDocs() {
