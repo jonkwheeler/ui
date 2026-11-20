@@ -1,15 +1,18 @@
 import { test as base, expect, type Locator, type Page } from "@playwright/test"
 import { hasFixture } from "./fixture-files"
 
+const resolverLeak =
+  "Octane 0.20.0's scoped children resolver keeps the first block that read an item's children, so the first popup stays alive. See .agents/experts/octane/decisions.md."
+
 // Tests Octane fails for a reason outside the adapter, by title. Each is
 // expected to fail, so one that starts passing fails the run until it's removed.
 const octaneKnownGaps: Record<string, string> = {
   "opening and closing a menu 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
-    "Octane 0.20.0's scoped children resolver keeps the first block that read an item's children, so the first popup stays alive. See .agents/experts/octane/decisions.md.",
+    resolverLeak,
   "opening and closing a combobox 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
-    "Octane 0.20.0's scoped children resolver keeps the first block that read an item's children, so the first popup stays alive. See .agents/experts/octane/decisions.md.",
+    resolverLeak,
   "opening and closing an autocomplete 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
-    "Octane 0.20.0's scoped children resolver keeps the first block that read an item's children, so the first popup stays alive. See .agents/experts/octane/decisions.md.",
+    resolverLeak,
 }
 
 const test = base.extend<{
@@ -25,7 +28,7 @@ const test = base.extend<{
   solidDiagnostics: void
   // Fails a Svelte spec when its page wrote state while options were handed over.
   svelteRelays: void
-  // Expects the Octane known gaps below to fail.
+  // Expects each of `octaneKnownGaps` to fail on Octane.
   octaneKnownGaps: void
 }>({
   framework: ["react", { option: true }],
