@@ -17,7 +17,7 @@ import { sectionMarkdown } from "./section-markdown"
 // them in node_modules, with no access to the site: Core and Agents as one
 // file each, and every page of the package's framework.
 
-/** Each package and the framework whose pages it ships. Core ships Core and Agents only. */
+/** Each package and the framework whose pages it ships. Core, and Octane until the site has its pages, ship Core and Agents only. */
 const packageFrameworks: Record<string, Framework | undefined> = {
   core: undefined,
   react: "react",
@@ -25,6 +25,7 @@ const packageFrameworks: Record<string, Framework | undefined> = {
   svelte: "svelte",
   solid: "solid",
   web: "web-components",
+  octane: undefined,
 }
 
 const guidesByFramework = new Map(

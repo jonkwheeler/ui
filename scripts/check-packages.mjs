@@ -68,6 +68,7 @@ const peers = [
   "svelte",
   "solid-js",
   "@solidjs/web",
+  "octane",
   "@nuxt/kit",
   "@nuxt/schema",
   "@types/node",
@@ -92,6 +93,7 @@ const frameworkOptions = {
   react: { jsx: "react-jsx" },
   // Solid 2 ships its JSX runtime in @solidjs/web, not solid-js.
   solid: { jsx: "preserve", jsxImportSource: "@solidjs/web" },
+  octane: { jsx: "react-jsx", jsxImportSource: "octane" },
 }
 
 if (flags.build) {
@@ -330,8 +332,9 @@ function findUnpublishedImports(name, manifest, manifests) {
 }
 
 // Each entry that throws when Node imports it from the packed package, as an
-// app's server does. Svelte ships components to compile, web components need
-// a DOM, and Solid's server build comes through the `solid` condition.
+// app's server does. Svelte and Octane ship components to compile, web
+// components need a DOM, and Solid's server build comes through the `solid`
+// condition.
 function findImportFailures(name, manifest, subpaths) {
   if (!["core", "react", "vue"].includes(name)) {
     return []

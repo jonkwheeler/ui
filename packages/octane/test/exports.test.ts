@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { describe, expect, test } from "vitest"
 
@@ -36,5 +36,16 @@ describe("package exports", () => {
       unreachable,
       "modules with no exports entry that nothing imports"
     ).toEqual([])
+  })
+
+  test("every export points at a module, and the published map lists the same ones", () => {
+    for (const target of Object.values<string>(manifest.exports)) {
+      expect(existsSync(path.join(packageDir, target)), target).toBe(true)
+    }
+    expect(
+      Object.keys(manifest.publishConfig.exports).filter(
+        (key) => key !== "./package.json"
+      )
+    ).toEqual(Object.keys(manifest.exports))
   })
 })

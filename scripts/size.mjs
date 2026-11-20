@@ -14,6 +14,7 @@ import { parseArgs } from "node:util"
 import { gzipSync } from "node:zlib"
 import { compile, compileModule } from "svelte/compiler"
 import { transform as compileSolid } from "@solidjs/compiler"
+import { createOctaneCompiler } from "octane/compiler/bundler"
 
 const root = path.resolve(import.meta.dirname, "..")
 // Core modules are named from their folder, like "motion/presence" or "checkbox/checkbox".
@@ -144,6 +145,10 @@ const adapters = [
     options: {},
     defines: true,
   },
+  {
+    name: "octane",
+    options: { external: ["octane", "octane/*"], plugins: [octaneFiles()] },
+  },
 ]
 
 // Field ships only with a Field: a control joins a field through a small
@@ -196,6 +201,8 @@ const minimalPages = {
     ],
   },
 }
+// Octane 0.20.0's compiler drops `/* @__PURE__ */`, so its select and combobox
+// keep their `notLabel` icon parts on every page. Checked once it keeps them.
 const minimalChecked = ["react", "vue", "svelte", "solid"]
 
 // Core modules an entry must never bundle, by entry. A switch has no indicator
@@ -601,6 +608,38 @@ render(() => <button onClick={() => {}}>App</button>, document.body)`
           }).code,
           loader: "ts",
         })
+      )
+    },
+  }
+}
+
+// Compiles the Octane package's modules for the client the way Octane's Vite
+// plugin does in a production build: `.tsx` components in full, and `.ts`
+// modules that call hooks given their hook slots. esbuild strips the types.
+function octaneFiles() {
+  const compiler = createOctaneCompiler({
+    root,
+    environment: "client",
+    dev: false,
+    hmr: false,
+  })
+  const compiled = new Map()
+  return {
+    name: "octane",
+    setup(build) {
+      build.onLoad(
+        { filter: /\/packages\/octane\/src\/.+\.tsx?$/, namespace: "file" },
+        async ({ path: file }) => {
+          if (!compiled.has(file)) {
+            compiled.set(
+              file,
+              readFile(file, "utf8").then(
+                (source) => compiler.transform(source, file)?.code ?? source
+              )
+            )
+          }
+          return { contents: await compiled.get(file), loader: "ts" }
+        }
       )
     },
   }

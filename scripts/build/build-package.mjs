@@ -9,6 +9,7 @@
 import { cpSync, readdirSync, rmSync } from "node:fs"
 import path from "node:path"
 import { parseArgs } from "node:util"
+import { copySources } from "./copy-sources.mjs"
 import { emitDeclarations } from "./declarations.mjs"
 import { buildNuxtModule } from "./nuxt-module.mjs"
 import { findPublishProblems } from "./publish-manifest.mjs"
@@ -21,6 +22,7 @@ const { values: flags } = parseArgs({
     "use-client": { type: "boolean", default: false },
     server: { type: "string", multiple: true, default: [] },
     solid: { type: "boolean", default: false },
+    octane: { type: "boolean", default: false },
     nuxt: { type: "boolean", default: false },
   },
 })
@@ -30,7 +32,11 @@ const sourceDir = path.join(packageDir, "src")
 const outDir = path.join(packageDir, "dist")
 
 rmSync(outDir, { recursive: true, force: true })
-if (flags.solid) {
+// --octane ships the sources as written, for the app's Octane compiler to
+// build for the client or the server, with declarations under `dist/types`.
+if (flags.octane) {
+  copySources({ sourceDir, outDir })
+} else if (flags.solid) {
   await transpileSolid({ packageDir, sourceDir, outDir })
 } else {
   await transpile({
@@ -40,7 +46,13 @@ if (flags.solid) {
     serverModules: flags.server,
   })
 }
-emitDeclarations({ packageDir, sourceDir, outDir })
+// TypeScript resolves `./menu.js` to a `menu.tsx` beside `menu.d.ts` first,
+// and would typecheck the sources with the app's settings.
+emitDeclarations({
+  packageDir,
+  sourceDir,
+  outDir: flags.octane ? path.join(outDir, "types") : outDir,
+})
 for (const file of readdirSync(sourceDir, { recursive: true })) {
   if (file.endsWith(".css")) {
     cpSync(path.join(sourceDir, file), path.join(outDir, file))
