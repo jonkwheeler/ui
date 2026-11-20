@@ -23,11 +23,14 @@ import {
 } from "tests/fixtures/drawer.ts"
 
 const controller = createDrawerController()
-exposeDrawerFixture(controller)
-
-const parts = drawerParts()
+// The window holds the specs' hooks, and the server has none.
+if (typeof window !== "undefined") {
+  exposeDrawerFixture(controller)
+}
 
 function Fixture() {
+  // Read here, not at module level, so the server reads each request's URL.
+  const parts = drawerParts()
   const [action, setAction] = React.useState("")
   const [more, setMore] = React.useState(false)
   return (

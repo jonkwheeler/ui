@@ -25,9 +25,9 @@ import {
 
 const controller = createTooltipController()
 
-const parts = tooltipParts()
-
 function Fixture() {
+  // Read here, not at module level, so the server reads each request's URL.
+  const parts = tooltipParts()
   const [action, setAction] = React.useState("")
   const options = tooltipOptions()
   const { save, toolbar, profile, info, publish, iconPopover } = tooltipFixture

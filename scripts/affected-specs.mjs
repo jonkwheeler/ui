@@ -61,7 +61,7 @@ const engineWeight = 2
 const shardMinutes = 6
 const maxShards = 12
 
-const frameworks = ["react", "vue", "web", "solid", "svelte"]
+const frameworks = ["react", "vue", "web", "solid", "svelte", "octane"]
 const engineProjects = ["web-webkit", "web-firefox"]
 
 /** A framework's Chromium projects, as tests/playwright.config.ts names them. */

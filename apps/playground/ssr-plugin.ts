@@ -2,12 +2,9 @@ import type { IncomingMessage, ServerResponse } from "node:http"
 import path from "node:path"
 import type { Plugin } from "vite"
 
-// Answers /__ssr?fixture=<name>&framework=<svelte|vue>&url=<page url> with
-// the fixture rendered on the server, for the *-ssr fixtures. Svelte's server
-// output is a separate compile, and Vue's renders in Node so its markup uses
-// Node's ICU, as a real server's does. In development it loads the renderer
-// through Vite. The preview server, which CI uses, loads the build
-// `vite build --ssr` wrote to dist-ssr.
+// Server HTML for the *-ssr fixtures, rendered in Node: Svelte and Octane need
+// their server compile, and Vue's markup should use Node's ICU. Dev loads each
+// renderer through Vite; the preview server, which CI uses, loads dist-ssr.
 type Renderer = {
   renderFixture: (fixture: string, url: string) => Promise<string>
 }
@@ -15,6 +12,7 @@ type Renderer = {
 const renderers: Record<string, string> = {
   svelte: "/src/ssr.ts",
   vue: "/src/ssr/vue.ts",
+  octane: "/src/ssr/octane.ts",
 }
 
 function ssrFixtures() {
@@ -52,7 +50,14 @@ function ssrFixtures() {
     name: "ssr-fixtures",
     // Workspace packages ship TypeScript source with extensionless imports,
     // which Node can't load on its own, so Vite transforms them.
-    config: () => ({ ssr: { noExternal: [/^@ui-sdk\//, "tests"] } }),
+    config: (config) => ({
+      ssr: { noExternal: [/^@ui-sdk\//, "tests"] },
+      // Octane fixtures import `createRoot` for `mount`, which Octane's server
+      // runtime doesn't export. The server only renders `Fixture`.
+      ...(String(config.build?.ssr).endsWith("ssr/octane.ts") && {
+        build: { rolldownOptions: { shimMissingExports: true } },
+      }),
+    }),
     configResolved(config) {
       // vite-plugin-svelte externalizes the dependencies of a package that
       // peers on Svelte, and `external` wins over `noExternal`.

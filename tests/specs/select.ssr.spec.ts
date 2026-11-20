@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test"
-import { expect, test } from "../fixtures"
+import { expect, reactApi, test } from "../fixtures"
 
 // Only *-ssr projects render on the server first.
 test.beforeEach(({ framework }) => {
@@ -70,8 +70,8 @@ test("the server markup submits the default value before hydration", async ({
   open,
 }) => {
   test.skip(
-    !framework.startsWith("react"),
-    "React's fixture records the server markup."
+    !reactApi(framework),
+    "React's and Octane's fixtures record the server markup."
   )
   await open("select", { value: "banana" })
   const value = await page.evaluate(

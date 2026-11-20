@@ -34,11 +34,14 @@ import { exposeDialogFixture, recordOpenChange } from "./shared"
 
 const controller = createDialogController()
 const confirm = createConfirm()
-exposeDialogFixture(controller, confirm)
-
-const parts = dialogParts()
+// The window holds the specs' hooks, and the server has none.
+if (typeof window !== "undefined") {
+  exposeDialogFixture(controller, confirm)
+}
 
 function Fixture() {
+  // Read here, not at module level, so the server reads each request's URL.
+  const parts = dialogParts()
   const [action, setAction] = React.useState("")
   const [triggerShown, setTriggerShown] = React.useState(true)
   return (

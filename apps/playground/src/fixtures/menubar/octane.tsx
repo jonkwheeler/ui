@@ -18,7 +18,11 @@ import { createRoot } from "octane"
 import { menubarFixture as f, menubarOptions } from "tests/fixtures/menubar.ts"
 
 const controller = createMenubarController()
-;(window as unknown as { __menubar: typeof controller }).__menubar = controller
+// The window holds the specs' hooks, and the server has none.
+if (typeof window !== "undefined") {
+  ;(window as unknown as { __menubar: typeof controller }).__menubar =
+    controller
+}
 
 function Fixture() {
   const [action, setAction] = React.useState("")

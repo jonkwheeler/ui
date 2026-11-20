@@ -9,7 +9,7 @@ import {
 // Each session can run its own playground with PLAYGROUND_PORT, so parallel work never shares a server.
 const port = process.env.PLAYGROUND_PORT ?? "5300"
 
-// *-ssr fixtures render to a string, then hydrate it. Vue, Svelte and Solid render theirs in Node.
+// *-ssr fixtures render to a string, then hydrate it. Vue, Svelte, Solid and Octane render theirs in Node.
 const frameworks = [
   "react",
   "vue",
@@ -27,6 +27,7 @@ const frameworks = [
   "solid-ssr",
   "octane",
   "octane-data",
+  "octane-ssr",
 ]
 
 // CI runs on 2-core Linux runners, so it uses one worker per core and retries timing

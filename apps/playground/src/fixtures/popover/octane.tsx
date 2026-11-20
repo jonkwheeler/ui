@@ -22,9 +22,9 @@ import {
 
 const controller = createPopoverController()
 
-const parts = popoverParts()
-
 function Fixture() {
+  // Read here, not at module level, so the server reads each request's URL.
+  const parts = popoverParts()
   const [action, setAction] = React.useState("")
   const [triggerShown, setTriggerShown] = React.useState(true)
   const options = popoverOptions()

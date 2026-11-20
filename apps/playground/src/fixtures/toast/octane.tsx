@@ -21,12 +21,12 @@ import { createRoot } from "octane"
 import { toastFixture, toastOptions, usesHost } from "tests/fixtures/toast.ts"
 import { createFixtureToasts } from "./shared"
 
-let record: (action: string) => void = () => {}
-const toasts = createFixtureToasts<React.ReactNode>((action) => record(action))
-
 function Fixture() {
   const [action, setAction] = React.useState("")
-  record = setAction
+  // Made here, not at module level, so the server reads each request's URL.
+  const [toasts] = React.useState(() =>
+    createFixtureToasts<React.ReactNode>((action) => setAction(action))
+  )
   const host = usesHost()
   return (
     <div className="fixture">

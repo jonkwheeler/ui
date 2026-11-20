@@ -28,6 +28,7 @@ Upstream commits with nothing to port:
 - **Children typed `{} | null | fn`.** Octane's `ReactNode` is `unknown`, so `ReactNode | fn` would erase the function's state type.
 - **`useState` destructured before passing on.** It returns three items in Octane.
 - **No `Profiler` in fixtures.** Only React's spec reads the commit counter it fed.
+- **`shimMissingExports` for the Octane server bundle only** (`apps/playground/ssr-plugin.ts`). Every `octane.tsx` fixture exports `mount`, which imports `createRoot`, and `octane/server` has no `createRoot`. The server never calls `mount`, so the shim's `undefined` is never read; splitting `mount` out of every fixture would diverge them from React's.
 - **`requireDirective` in the shared playground.** Octane's Vite plugin has no include option, and without it would compile every `.tsx`, React's and Solid's fixtures included.
 
 ## Known and open (don't report again, check whether fixed)
