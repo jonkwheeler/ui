@@ -43,6 +43,9 @@ export default defineConfig<{
       },
       testMatch: portalSpecs,
       testIgnore: [kitchenSinks, countGates, ...specsThatSkip("octane")],
+      // Portaled outside the shadow root, the menu's aria-labelledby can't reach
+      // its trigger, so it has no name. Vue's is unnamed too; React skips it.
+      grepInvert: /a click on a trigger in a shadow root opens the menu/,
     },
   ],
 })

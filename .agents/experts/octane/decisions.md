@@ -31,6 +31,8 @@ Upstream commits with nothing to port:
 - **`shimMissingExports` for the Octane server bundle only** (`apps/playground/ssr-plugin.ts`). Every `octane.tsx` fixture exports `mount`, which imports `createRoot`, and `octane/server` has no `createRoot`. The server never calls `mount`, so the shim's `undefined` is never read; splitting `mount` out of every fixture would diverge them from React's.
 - **`requireDirective` in the shared playground.** Octane's Vite plugin has no include option, and without it would compile every `.tsx`, React's and Solid's fixtures included.
 
+- **`octane-portal` leaves out `menu.spec`'s shadow-root click test.** With the trigger moved into a shadow root and the content portaled to `#portal-root` outside it, the content's `aria-labelledby` can't reach the trigger, so the menu has no name and `getByRole("menu", { name: "File" })` finds nothing. The menu does open and stay open. Vue's portaled menu is unnamed the same way; no upstream project runs the pair, since React skips the test and only React has a portal project.
+
 ## Unit tests dropped from React's suite
 
 `packages/octane/test` ports every React test file. These cases don't apply to Octane:
