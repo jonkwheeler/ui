@@ -1,0 +1,63 @@
+import {
+  Meter,
+  MeterIndicator,
+  MeterLabel,
+  MeterTrack,
+  MeterValue,
+} from "@ui-sdk/octane/meter"
+import { createRoot, useState, type ComponentProps } from "octane"
+import { meterFixture } from "tests/fixtures/meter.ts"
+
+const { storage, requests, disk, score } = meterFixture
+
+function Gauge({
+  label,
+  ...props
+}: ComponentProps<typeof Meter> & { label: string }) @{
+  <Meter className="gauge" {...props}>
+    <MeterLabel>{label as string}</MeterLabel>
+    <MeterValue className="gauge-value" />
+    <MeterTrack className="gauge-track">
+      <MeterIndicator className="gauge-indicator" />
+    </MeterTrack>
+  </Meter>
+}
+
+function Fixture() @{
+  const [value, setValue] = useState(storage.value)
+
+  <div class="fixture">
+    <button>Before</button>
+    <Gauge label={storage.label} value={value} />
+    <Gauge
+      label={requests.label}
+      value={requests.value}
+      max={requests.max}
+      getValueLabel={requests.valueLabel}
+    />
+    <Gauge
+      label={disk.label}
+      value={disk.value}
+      max={disk.max}
+      format={disk.format}
+    />
+    <Gauge
+      label={score.label}
+      value={score.value}
+      min={score.min}
+      max={score.max}
+    />
+    <button onClick={() => setValue((current) => current + storage.step)}>
+      Fill
+    </button>
+    <button onClick={() => setValue(storage.value)}>Reset</button>
+    <button>After</button>
+    <output role="status" aria-label="Last action" />
+  </div>
+}
+
+function mount(root: HTMLElement) {
+  createRoot(root).render(<Fixture />)
+}
+
+export { Fixture, mount }

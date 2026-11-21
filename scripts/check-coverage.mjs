@@ -14,7 +14,15 @@ const leakFixture = readFileSync(
   "utf8"
 )
 const docsFrameworks = ["react", "vue", "svelte", "solid", "web-components"]
-const fixtureFrameworks = ["react", "vue", "web", "solid", "svelte", "octane"]
+const fixtureFrameworks = [
+  "react",
+  "vue",
+  "web",
+  "solid",
+  "svelte",
+  "octane",
+  "octane-tsrx",
+]
 
 const hasSpec = (name, kind) =>
   specs.has(kind ? `${name}.${kind}.spec.ts` : `${name}.spec.ts`)
