@@ -62,6 +62,8 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 - Effects that must run every commit, such as the one that flushes `runBindWrites`, pass `null` deps.
 - Parts that read their children are wrapped in `descriptorChildren`: the roots that call `hasChild` or `learnLabels` (`Menu`, `Select`, `Combobox`, `TreeItem`, `TriggerMenu`, `Autocomplete`, `Command`), and the item texts that mark matches (`SelectItemText`, `ComboboxItemText`, `CommandItemText`, `AutocompleteItemText`). `Field` clones its `render` prop, not its children, and props keep descriptors, so it needs no marker.
 - `usePart` and other hooks are called into a `const` before `return`, never inside JSX children.
+- In `.tsrx`, a part receives a render function of its state only from an arrow written as its sole child (`{(state) => …}`). A call that returns a function compiles to a children block, which `isRenderFunction` passes over. Octane's `docs/differences-from-react.md` covers this under template children.
+- The parts that read their children are the `descriptorChildren` ones above. Tabs, Toolbar, Accordion, Menubar, NavigationMenu and Toggle don't, so their `.tsrx` fixtures use `@if` and `@for` freely.
 - The package ships `.tsx` and `.ts` source with `octane` as a peer and no build step of its own.
 - Octane's synchronous `act()` stays open while it drains, so work a microtask later never warns. The warning is off by default; `setIsOctaneActEnvironment(true)` from `octane` turns it on. A test that checks work lands inside `act()` compares the container before and after instead of waiting for a warning.
 - A React unit test ports with the pragma, `act` and `createRoot` (or `renderToString` from `octane/server`) from `octane`, no `IS_REACT_ACT_ENVIRONMENT`, and no `StrictMode` expectations. Server-render tests are `*-ssr.test.tsx`, which the package's `ssr` Vitest project compiles for the server.
@@ -75,7 +77,7 @@ Octane has React's component and hooks API and compiles it to direct DOM code. R
 - [ ] Every `useEffect` / `useLayoutEffect` without a deps array is meant to infer; one that must run every commit passes `null`.
 - [ ] Text inputs listen with `onInput`; a controlled value without a handler doesn't warn.
 - [ ] A helper call that reads live instance state through a stable handle is checked on a built playground, not only the dev server.
-- [ ] A new part that inspects its children is wrapped in `descriptorChildren`, as a top-level `const` with a named import.
+- [ ] A new part that inspects its children is wrapped in `descriptorChildren`, as a top-level `const` with a named import, and its `.tsrx` fixture keeps what it inspects out of `@if` and `@for`.
 - [ ] Code that merges or reads author props handles a style as text, class values, ref arrays and DOM attribute spellings.
 - [ ] Children that may be functions are typed `{} | null | fn`, not `ReactNode | fn`, and called only through `isRenderFunction`.
 - [ ] A new `.tsx` file opens with the octane pragma.
