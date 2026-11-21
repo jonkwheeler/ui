@@ -4,16 +4,20 @@ import { hasFixture } from "./fixture-files"
 const resolverLeak =
   "Octane 0.20.0's scoped children resolver keeps the first block that read an item's children, so the first popup stays alive. See .agents/experts/octane/decisions.md."
 
-// Tests Octane fails for a reason outside the adapter, by title. Each is
-// expected to fail, so one that starts passing fails the run until it's removed.
-const octaneKnownGaps: Record<string, string> = {
-  "opening and closing a menu 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
-    resolverLeak,
-  "opening and closing a combobox 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
-    resolverLeak,
-  "opening and closing an autocomplete 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
-    resolverLeak,
-}
+// Tests an Octane project fails for a reason outside the adapter, by title,
+// with the projects that fail it. Each is expected to fail there, so one that
+// starts passing fails the run until it's removed.
+const octaneKnownGaps: Record<string, { reason: string; projects: string[] }> =
+  {
+    // A .tsrx menu renders its items in an @for block, which keeps no
+    // descriptor for the resolver to hold, so it passes on octane-tsrx.
+    "opening and closing a menu 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
+      { reason: resolverLeak, projects: ["octane"] },
+    "opening and closing a combobox 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
+      { reason: resolverLeak, projects: ["octane", "octane-tsrx"] },
+    "opening and closing an autocomplete 200 times, then mounting and unmounting it 200 times, leaves nothing behind":
+      { reason: resolverLeak, projects: ["octane", "octane-tsrx"] },
+  }
 
 const test = base.extend<{
   framework: string
@@ -28,7 +32,7 @@ const test = base.extend<{
   solidDiagnostics: void
   // Fails a Svelte spec when its page wrote state while options were handed over.
   svelteRelays: void
-  // Expects each of `octaneKnownGaps` to fail on Octane.
+  // Expects each of `octaneKnownGaps` to fail on the projects it lists.
   octaneKnownGaps: void
 }>({
   framework: ["react", { option: true }],
@@ -104,11 +108,9 @@ const test = base.extend<{
   ],
   octaneKnownGaps: [
     async ({ framework }, use, testInfo) => {
-      const reason = framework.startsWith("octane")
-        ? octaneKnownGaps[testInfo.title]
-        : undefined
-      if (reason) {
-        testInfo.fail(true, reason)
+      const gap = octaneKnownGaps[testInfo.title]
+      if (gap?.projects.includes(framework)) {
+        testInfo.fail(true, gap.reason)
       }
       await use()
     },

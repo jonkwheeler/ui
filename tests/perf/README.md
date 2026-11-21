@@ -586,7 +586,7 @@ cd tests && PLAYGROUND_PORT=5310 ../scripts/test-slot.sh npx playwright test spe
 - At most 1 `tooltip` render.
 - No `menuItem` renders.
 - At most 1 `perOption` render.
-- `elements`: `react` 8, `vue` 8, `web` 17, `svelte` 8, `solid` 8, `octane` 8, `perOption` 1.
+- `elements`: `react` 8, `vue` 8, `web` 17, `svelte` 8, `solid` 8, `octane` 8, `octane-tsrx` 8, `perOption` 1.
 
 **Notes:** Per row: each of the three triggers renders once, the select's value twice (again once its options give it the label), and the tooltip's content once, hidden, since the trigger points at it with aria-describedby. A closed menu's items never render. Elements per row with no options, then per option. Web components' markup holds every part, the menu's items and wrapper elements included. Svelte renders the same elements as React and Vue; its anchors are comments.
 

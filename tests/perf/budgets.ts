@@ -214,6 +214,7 @@ const budgets = {
       svelte: 8,
       solid: 8,
       octane: 8,
+      "octane-tsrx": 8,
       perOption: 1,
     },
   },
