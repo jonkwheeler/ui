@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `0718f402` (2026-11-20, the whole branch against `b4dbe882`: every component, the server-render pipeline and the fork-only CI).
 
-Mirrors `packages/react` at `2f1b22c8`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `53a2c681`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits before `b4dbe882` that needed nothing in Octane, from the replay that brought the port up from `@ui-sdk/react@0.1.0-beta.1`:
 
@@ -40,6 +40,7 @@ Upstream commits before `b4dbe882` that needed nothing in Octane, from the repla
 - **`octane-portal` leaves out `menu.spec`'s shadow-root click test.** With the trigger moved into a shadow root and the content portaled to `#portal-root` outside it, the content's `aria-labelledby` can't reach the trigger, so the menu has no name and `getByRole("menu", { name: "File" })` finds nothing. The menu does open and stay open. Vue's portaled menu is unnamed the same way; no upstream project runs the pair, since React skips the test and only React has a portal project.
 
 - **Octane runs passive effects after paint, even for a discrete event or `flushSync`** (Octane's `docs/differences-from-react.md`, scheduler). A React regression test for a `flushSync` timing bug may pass on Octane without its fix: `select-search-flush-sync` (#935) guards the behaviour on Octane but wouldn't catch the bug returning.
+- **`toast-without-resize-observer` (#1093) collects `onUncaughtError` and expects none.** React's test checks only that the toast shows, since React unmounts the tree when core throws as the toast binds. Octane binds parts in their ref and keeps the tree when a ref throws, so React's lines passed on Octane without core's fix, with the `ReferenceError` only in `console.error`. With the collected errors, the test fails without the fix.
 - **Upstream commits that touch only core or other frameworks need no entry here.** Only commits that touch `packages/react` or a React fixture get ported, a commit that only adds a React test included, and the mirrors line moves to each.
 
 ## Unit tests dropped from React's suite
@@ -64,6 +65,7 @@ Each one rechecked on `octane` 0.27.0 on 2026-11-27, with its repro.
 - **`popup.tsx`'s tree-following tracks nothing for a popup that mounts visible.** Octane's portal appends its nodes before `TreeEffect`'s insertion effect runs, so `placed` sees no change and the list holds only the element its ref gave. A portaled popup inside a hidden `<Activity>` still ends up `display: none`, so nothing visible breaks. Recheck with `cached-page`.
 - **Octane drops `/* @__PURE__ */` annotations** (0.20.0, unchanged in 0.27.0). `const SelectItemIcon = /* @__PURE__ */ notLabel(...)` compiles to `const SelectItemIcon = notLabel(...)` in a production client compile (`createOctaneCompiler({ environment: "client", dev: false })`), and `ComboboxItemIcon` the same, so every select and combobox page keeps core's `lists/item-icon`, in `pnpm size` and in apps alike. The annotation goes whatever the call's argument is. `scripts/size.mjs` leaves Octane out of `minimalChecked` until a release keeps it. Report to octanejs/octane.
 - **Octane hydration keeps mismatched ids, and warns only in a dev compile** (0.20.0, unchanged in 0.27.0). With a different `identifierPrefix`, the client computes new ids and the DOM keeps the server's, as React 19 does. A dev compile (Vitest, the dev server) logs `Octane hydration mismatch` with each attribute, like `id: the server rendered ":s-in-0:", the client ":c-in-0:"`; a production compile, which `vite build` and so every built playground uses, logs nothing. SSR fixtures must hydrate with the same prefix the server used.
+- **Octane keeps the tree when a ref callback throws** (0.27.0). The error goes to `onUncaughtError`, or `console.error` without one, and nothing leaves `act()`. Octane's `docs/differences-from-react.md` says an unhandled error unmounts the root's tree, and a throwing `useLayoutEffect` or `useEffect` does. Repro: `<p ref={() => { throw new Error() }}>child</p>` keeps `child` in the container; the same throw in a layout or passive effect empties it. React 19 unmounts for all three. Report to octanejs/octane.
 - **Pinned to `octane` 0.27.0, with its exact peer `@tsrx/oxc` 0.24.0.** The newest release old enough for `minimumReleaseAge` on 2026-11-27 (published 2026-11-26T19:49Z); 0.27.1 to 0.27.3 came out on 2026-11-27. Bump then and recheck.
 
 ## Fixed in Octane
