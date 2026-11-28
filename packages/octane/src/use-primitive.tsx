@@ -471,6 +471,8 @@ function carried(
 }
 
 const heldRefs = new WeakMap<Part, (el: HTMLElement | null) => void>()
+const renderedProps = new WeakMap<Part, Part["props"]>()
+const propsBeforeBind = new WeakMap<Part, Part["props"]>()
 
 // Octane detaches and attaches an element again when its ref changes, like an
 // inline callback ref the app passes, so a part lets go of its element a
@@ -485,6 +487,15 @@ function heldRef(part: Part) {
   held = (el) => {
     releasing = !el
     if (el) {
+      // Octane binds an element before the part's layout effect commits its
+      // props, and a part that took over another's key still holds that one's.
+      const props = renderedProps.get(part)
+      if (props !== undefined && props !== part.props) {
+        if (!propsBeforeBind.has(part)) {
+          propsBeforeBind.set(part, part.props)
+        }
+        commit(part, props)
+      }
       return bindTo(el)
     }
     queueMicrotask(() => {
@@ -687,7 +698,11 @@ function usePartState<P extends Primitive, S extends SlotName<P>>(
   )
 
   React.useLayoutEffect(() => {
-    const changed = part.props !== props && changesValues(part.props, props)
+    const before = propsBeforeBind.has(part)
+      ? propsBeforeBind.get(part)
+      : part.props
+    propsBeforeBind.delete(part)
+    const changed = before !== props && changesValues(before, props)
     commit(part, props)
     preview?.pending.delete(last)
     if (part.el && !inPage(instance)) {
@@ -891,6 +906,10 @@ function usePart<
   const part = owner.instance.part(slot, slotProps, true)
   // Removed with its component, a part lets go in this commit, not a microtask later.
   React.useLayoutEffect(() => () => ref(part, host)(null), [part])
+  // Before refs attach, and only for a render Octane commits.
+  React.useInsertionEffect(() => {
+    renderedProps.set(part, slotProps as Part["props"])
+  }, null)
   // An id on a `render` element wins its merge, so the part takes that one as
   // it renders. A render function's can't be read until it runs.
   const renderId = React.isValidElement<{ id?: string }>(render)
