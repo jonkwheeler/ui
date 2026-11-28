@@ -15,6 +15,7 @@ import {
   navigationMenuLayout,
   navigationMenuOptions,
 } from "tests/fixtures/navigation-menu.ts"
+import { indicatorOptions } from "tests/fixtures/page.ts"
 
 type Layout = ReturnType<typeof navigationMenuLayout>
 
@@ -111,7 +112,10 @@ function Fixture() @{
           </NavigationMenuLink>
         </NavigationMenuItem>
       </NavigationMenuList>
-      <NavigationMenuIndicator className="nav-indicator" />
+      <NavigationMenuIndicator
+        className="nav-indicator"
+        {...indicatorOptions()}
+      />
       @if (layout.viewport) {
         <NavigationMenuViewport
           className="nav-viewport"

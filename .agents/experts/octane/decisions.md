@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `0718f402` (2026-11-20, the whole branch against `b4dbe882`: every component, the server-render pipeline and the fork-only CI).
 
-Mirrors `packages/react` at `d850982b`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `045ee989`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits before `b4dbe882` that needed nothing in Octane, from the replay that brought the port up from `@ui-sdk/react@0.1.0-beta.1`:
 
@@ -81,6 +81,7 @@ What the pin to 0.27.0 fixed, each proved on 0.20.0 and on 0.27.0, and the test 
 
 ## Revisit
 
+- Nothing checks that `@ui-sdk/octane`'s named exports match `@ui-sdk/react`'s; `test/exports.test.ts` covers only the package's exports map, so a missed type re-export passes every check. A test comparing the two packages' export names would catch it.
 - An inline ref array (`ref={[a, b]}`) is a new array each render, so `mergeRefs` builds a new merged ref and the part detaches and reattaches. `heldRef`'s grace should absorb it; check with bind and unbind counters.
 - The canary writes `npm view octane@<v> peerDependencies.@tsrx/oxc` into `pnpm-workspace.yaml` with `sed`. Octane pins it exactly today; a range would need quoting.
 - `tests/playwright.octane-fork.config.ts` copies `portalSpecs` from `playwright.config.ts`, which doesn't export it. Keep the two lists in step.

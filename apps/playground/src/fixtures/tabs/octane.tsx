@@ -9,7 +9,7 @@ import {
 } from "@ui-sdk/octane/tabs"
 import * as React from "octane"
 import { createRoot } from "octane"
-import { tabsOptions } from "tests/fixtures/page.ts"
+import { indicatorOptions, tabsOptions } from "tests/fixtures/page.ts"
 import { tabsFixture } from "tests/fixtures/tabs.ts"
 
 const controller = createTabsController()
@@ -42,7 +42,7 @@ function Fixture() {
               {tab.label}
             </TabsTab>
           ))}
-          <TabsIndicator className="indicator" />
+          <TabsIndicator className="indicator" {...indicatorOptions()} />
         </TabsList>
         {tabsFixture.tabs.map((tab) => (
           <TabsPanel

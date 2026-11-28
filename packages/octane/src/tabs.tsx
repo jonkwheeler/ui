@@ -55,6 +55,7 @@ export type {
   TabsChangeOptions,
   TabsController,
   TabsDirection,
+  TabsIndicatorProps,
   TabsIndicatorState,
   TabsListState,
   TabsOptions,

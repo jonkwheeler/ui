@@ -7,7 +7,7 @@ import {
   TabsTab,
 } from "@ui-sdk/octane/tabs"
 import { createRoot, useState } from "octane"
-import { tabsOptions } from "tests/fixtures/page.ts"
+import { indicatorOptions, tabsOptions } from "tests/fixtures/page.ts"
 import { tabsFixture } from "tests/fixtures/tabs.ts"
 
 const controller = createTabsController()
@@ -57,7 +57,7 @@ function Fixture() @{
             {tab.label as string}
           </TabsTab>
         }
-        <TabsIndicator className="indicator" />
+        <TabsIndicator className="indicator" {...indicatorOptions()} />
       </TabsList>
       @for (const tab of tabsFixture.tabs; key tab.value) {
         <Panel tab={tab} keepMounted={keepMounted} />

@@ -7,7 +7,10 @@ import {
 } from "@ui-sdk/octane/segmented-control"
 import * as React from "octane"
 import { createRoot } from "octane"
-import { segmentedControlOptions } from "tests/fixtures/page.ts"
+import {
+  indicatorOptions,
+  segmentedControlOptions,
+} from "tests/fixtures/page.ts"
 import { segmentedControlFixture } from "tests/fixtures/segmented-control.ts"
 
 const controller = createSegmentedControlController()
@@ -40,7 +43,7 @@ function Fixture() {
           setAction(`${value}:${details.reason}`)
         }}
       >
-        <SegmentedControlIndicator />
+        <SegmentedControlIndicator {...indicatorOptions()} />
         {segmentedControlFixture.items.map((item) => (
           <SegmentedControlItem
             key={item.value}
