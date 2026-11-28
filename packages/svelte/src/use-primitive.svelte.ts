@@ -106,6 +106,9 @@ const memo = <Value>(compute: () => Value) => {
   return () => value
 }
 
+// The primitive each instance was made from, for a part given only its handle.
+const primitives = new WeakMap<object, Primitive>()
+
 /**
  * Creates the instance for a component's life. `options` is a getter, so
  * the props it reads stay in sync, and carries the component's `$props.id()`
@@ -125,6 +128,7 @@ function usePrimitive<P extends Primitive>(
   const prefixed = `ui-sdk-${first.id}`
   noteEarlyText()
   const instance = primitive({ ...first, id: prefixed }) as ReturnType<P>
+  primitives.set(instance, primitive)
   const bindable = trackBindable(primitive, instance.get(), first, options)
   const removals: Promise<void>[] = []
   if ("onOpenChangeComplete" in schemaOf(primitive).options) {
@@ -415,7 +419,9 @@ function useHandlePart<P extends Primitive, S extends SlotName<P>>(
     back = portal?.(el)
     const current = untrack(() => instance.part(name, props()))
     const ref = partRef(current, { by: "framework", attaches: "all" })
-    ref(el)
+    // A slot's `bind` runs in here, and what it reads, like app state behind
+    // a function option, would bind the element again each time it changes.
+    untrack(() => ref(el))
     bound = el
     // The declarations the spread wrote are recorded, so a later change can drop them.
     if (typeof styleShown === "string") {
@@ -675,6 +681,7 @@ export {
   plainPart,
   type PopupContainer,
   type Portal,
+  primitives,
   type PrimitiveHandle,
   type SlotAttributes,
   useHandlePart,
