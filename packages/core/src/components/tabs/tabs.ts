@@ -14,6 +14,7 @@ import {
   type ButtonElement,
 } from "../../foundation/platform/button"
 import { layoutBox } from "../../foundation/platform/layout"
+import { isRTL } from "../../foundation/platform/env"
 import {
   bindIndicator,
   directionBetween,
@@ -379,12 +380,13 @@ function tabsApiBody(
     return !!tab && roving.tabIndex(state, { key, props: tab }) === "0"
   }
 
-  // Brings a tab selected without focus, like by a controller or the URL,
-  // into view inside a scrolling list. The page itself never scrolls.
+  // Brings the selected tab into view inside a scrolling list, focused too,
+  // since browsers don't scroll a half-hidden element they focus. The page
+  // itself never scrolls.
   function reveal(value: string | null) {
     const list = element("list")
     const tab = value === null ? undefined : element("tab", value)
-    if (!list || !tab || tab.contains(document.activeElement)) {
+    if (!list || !tab) {
       return
     }
     if (
@@ -394,12 +396,16 @@ function tabsApiBody(
       return
     }
     const rect = layoutBox(tab, list)
-    list.scrollLeft = scrollToShow(
-      list.scrollLeft,
+    // Right to left, scrollLeft runs from 0 at the right edge to negative, so
+    // the distances are measured from the right.
+    const rtl = isRTL(list)
+    const scrolled = scrollToShow(
+      rtl ? -list.scrollLeft : list.scrollLeft,
       list.clientWidth,
-      rect.left,
+      rtl ? list.clientWidth - rect.left - rect.width : rect.left,
       rect.width
     )
+    list.scrollLeft = rtl ? -scrolled : scrolled
     list.scrollTop = scrollToShow(
       list.scrollTop,
       list.clientHeight,

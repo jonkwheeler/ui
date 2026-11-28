@@ -339,6 +339,12 @@ function focusOpening(core: PopupCore) {
       }
       const wait = preset.focusDelay ?? options().delay ?? preset.delay ?? 0
       clear()
+      // An open popup moves to this trigger at once, as it does for the pointer,
+      // and one the pointer opened becomes the keyboard's, so it stays open.
+      if (store.get().open) {
+        open()
+        return
+      }
       if (wait > 0) {
         timer = setTimeout(open, wait)
       } else {
@@ -351,7 +357,16 @@ function focusOpening(core: PopupCore) {
         return
       }
       const next = event.relatedTarget as Node | null
-      if (next && core.popup.element()?.contains(next)) {
+      if (
+        next &&
+        (core.popup.element()?.contains(next) ||
+          [...core.parts()].some(
+            (part) =>
+              part.slot === core.triggerSlot &&
+              part.el?.contains(next) &&
+              !core.triggerDisabled(part.key)
+          ))
+      ) {
         return
       }
       core.control.hide({ reason: "focus-out", event, focus: false })
