@@ -112,13 +112,19 @@ const rangeOf = (state: { min: number; max: number; step: number }) => ({
 })
 
 // The text is read with the options it shows with, whose decimals can change
-// the plural of a unit or currency name, like "1,5 японской иены".
-const readFormat = (state: Pick<State, "format" | "step">) =>
-  displayOptions(state.format, state.step)
+// the plural of a unit or currency name, like "1,5 японской иены". It shows a
+// small step's decimals, so Alt+Arrow in a percent field shows "12.1%".
+const readFormat = (state: Pick<State, "format" | "step" | "smallStep">) =>
+  displayOptions(
+    state.format,
+    decimalsOf(state.smallStep) > decimalsOf(state.step)
+      ? state.smallStep
+      : state.step
+  )
 
 const display = (
   value: number | null,
-  state: Pick<State, "locale" | "pageLocale" | "format" | "step">
+  state: Pick<State, "locale" | "pageLocale" | "format" | "step" | "smallStep">
 ) => formatNumber(value, localeOf(state), readFormat(state))
 
 const isLocked = (state: State) => isDisabled(state) || state.readOnly
@@ -194,6 +200,9 @@ function numberInputApiBody(
     if (state.text.trim() === "") {
       return null
     }
+    if (!edited) {
+      return state.value
+    }
     return (
       parseNumber(state.text, localeOf(state), readFormat(state)) ?? state.value
     )
@@ -253,18 +262,16 @@ function numberInputApiBody(
       return false
     }
     const range = rangeOf(state)
-    const from = current()
+    const from = current() ?? 0
     const next =
-      from === null
-        ? stepValue(0, steps, range)
-        : size === "large"
-          ? snapToStep(
-              clamp(from + steps * state.largeStep, state.min, state.max),
-              range
-            )
-          : size === "small"
-            ? stepValue(from, steps, { ...range, step: state.smallStep })
-            : stepValue(from, steps, range)
+      size === "large"
+        ? snapToStep(
+            clamp(from + steps * state.largeStep, state.min, state.max),
+            range
+          )
+        : size === "small"
+          ? stepValue(from, steps, { ...range, step: state.smallStep })
+          : stepValue(from, steps, range)
     const done = setValue(next, reason, event)
     // The text follows a step, even one that lands on the same value.
     edited = false
@@ -586,7 +593,7 @@ function numberInputApiBody(
   // user is typing. Formats compare by content, so a new object each render
   // changes nothing.
   const formatKey = (state: State) =>
-    JSON.stringify([state.format, localeOf(state), state.step])
+    JSON.stringify([state.format, localeOf(state), state.step, state.smallStep])
   // A value from options shows in the same pass, unless the text typed so far already reads as it.
   deriveFromOptions(context, ["text"], (synced, state) => {
     if (!("value" in synced) || sameValue(synced.value, state.value)) {
@@ -611,7 +618,8 @@ function numberInputApiBody(
     const settingsChanged =
       state.format !== shownState.format ||
       localeOf(state) !== localeOf(shownState) ||
-      state.step !== shownState.step
+      state.step !== shownState.step ||
+      state.smallStep !== shownState.smallStep
     shownState = state
     const format = settingsChanged ? formatKey(state) : shownFormat
     if (format !== shownFormat) {

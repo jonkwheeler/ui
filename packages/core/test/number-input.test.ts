@@ -329,3 +329,64 @@ describe("number input", () => {
     expect(attrs(whole.part("control")).inputmode).toBe("numeric")
   })
 })
+
+test("Alt+ArrowUp keeps adding small steps in a percent or yen field, and shows them", () => {
+  const altUp = {
+    key: "ArrowUp",
+    altKey: true,
+    preventDefault() {},
+  } as KeyboardEvent
+  const press = (instance: ReturnType<typeof numberInput>, times: number) => {
+    for (let i = 0; i < times; i++) {
+      instance.api.internal.keydown(altUp)
+      instance.api.internal.keyup(altUp)
+    }
+  }
+  const percent = numberInput({
+    id: "n",
+    defaultValue: 0.12,
+    locale: "en-US",
+    format: { style: "percent" },
+  })
+  expect(attrs(percent.part("control")).value).toBe("12%")
+  press(percent, 2)
+  expect(percent.get().value).toBe(0.122)
+  expect(attrs(percent.part("control")).value).toBe("12.2%")
+  const yen = numberInput({
+    id: "n",
+    defaultValue: 100,
+    locale: "en-US",
+    format: { style: "currency", currency: "JPY" },
+  })
+  expect(attrs(yen.part("control")).value).toBe("¥100")
+  press(yen, 2)
+  expect(yen.get().value).toBe(100.2)
+  expect(attrs(yen.part("control")).value).toBe("¥100.2")
+  const quarter = numberInput({
+    id: "n",
+    defaultValue: 0.0025,
+    step: 0.0025,
+    smallStep: 0.001,
+    locale: "en-US",
+    format: { style: "percent" },
+  })
+  expect(attrs(quarter.part("control")).value).toBe("0.25%")
+})
+
+test("a large or small step from an empty field moves by that step", () => {
+  const press = (init: Partial<KeyboardEvent>) => {
+    const instance = numberInput({ id: "n", defaultValue: null })
+    instance.api.internal.keydown({
+      preventDefault() {},
+      ...init,
+    } as KeyboardEvent)
+    return instance.get().value
+  }
+  expect(press({ key: "PageUp" })).toBe(10)
+  expect(press({ key: "ArrowUp", shiftKey: true })).toBe(10)
+  expect(press({ key: "ArrowUp", altKey: true })).toBe(0.1)
+  expect(press({ key: "ArrowDown" })).toBe(-1)
+  const instance = numberInput({ id: "n", defaultValue: null })
+  instance.api.increment({ large: true })
+  expect(instance.get().value).toBe(10)
+})

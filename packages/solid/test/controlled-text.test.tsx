@@ -3,6 +3,11 @@ import { createSignal, flush } from "solid-js"
 import { expect, test } from "vitest"
 import { Field, FieldLabel } from "../src/field"
 import { Input } from "../src/input"
+import {
+  createPasswordInputController,
+  PasswordInput,
+  PasswordInputControl,
+} from "../src/password-input"
 import { Textarea } from "../src/textarea"
 
 function mount(code: () => any) {
@@ -40,6 +45,38 @@ test("a controlled input or textarea keeps a value the parent doesn't update", a
   await type(textarea, "abcz")
   expect(input.value).toBe("abc")
   expect(textarea.value).toBe("abc")
+  dispose()
+})
+
+test("a controlled password input keeps a value the parent doesn't update", async () => {
+  const { root, dispose } = mount(() => (
+    <PasswordInput value="abc">
+      <PasswordInputControl aria-label="Password" />
+    </PasswordInput>
+  ))
+  const input = root.querySelector("input")!
+  await type(input, "abcz")
+  await type(input, "abczy")
+  expect(input.value).toBe("abc")
+  dispose()
+})
+
+test("clearing a controlled password input from a button leaves the button's value alone", async () => {
+  const controller = createPasswordInputController()
+  const { root, dispose } = mount(() => (
+    <>
+      <PasswordInput value="abc" controller={controller}>
+        <PasswordInputControl aria-label="Password" />
+      </PasswordInput>
+      <button value="go">Clear</button>
+    </>
+  ))
+  const button = root.querySelector("button")!
+  const click = new MouseEvent("click", { bubbles: true })
+  button.dispatchEvent(click)
+  controller.clear({ event: click })
+  await settle()
+  expect(button.value).toBe("go")
   dispose()
 })
 

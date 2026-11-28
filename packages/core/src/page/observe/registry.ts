@@ -3,6 +3,7 @@
 // row text read from its elements, and every change that goes through, settled
 // or step by step, once either entry installs it on the kernel's `watchers`.
 import type { AgentComponent } from "../agent/agent"
+import { fieldOf } from "../../foundation/forms/field-root"
 import { commitFrom } from "../../foundation/kernel/change"
 import type { ChangeSource } from "../../foundation/kernel/details"
 import type {
@@ -235,7 +236,7 @@ const secretControl = (el: Element) =>
 // web component's input or a password input whose text shows.
 function holdsSecret(field: Entry, parts: Bound[]) {
   const root = parts.find((part) => part.slot === "root")?.el
-  const own = (el: Element) => el.closest('[data-slot="field"]') === root
+  const own = (el: Element) => fieldOf(el) === root
   if (!root) {
     return false
   }
@@ -480,6 +481,10 @@ function labelOf(parts: Bound[], entry?: Entry) {
     ...sole,
     ...keyed,
   ]) {
+    // A part inside the popup, like a dialog's Close, has a name of its own.
+    if (popup !== part.el && popup?.contains(part.el)) {
+      continue
+    }
     const name = nameOf(part.el)
     if (name) {
       return name
