@@ -3,6 +3,7 @@
 // don't pay for it.
 export {
   accessibleName,
+  apart,
   hasAccessibleName,
   namedByContent,
   roleOf,

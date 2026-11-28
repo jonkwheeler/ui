@@ -5,6 +5,7 @@ import { afterEach, expect, test } from "vitest"
 import { checkbox } from "../src/components/checkbox/checkbox"
 import { collapsible } from "../src/components/collapsible/collapsible"
 import { input, textarea } from "../src/components/input/input"
+import { numberInput } from "../src/components/number-input/number-input"
 import { bind } from "../src/foundation/kernel/part"
 import { createAgent } from "../src/page/agent/agent"
 
@@ -14,11 +15,18 @@ afterEach(() => {
   document.body.innerHTML = ""
 })
 
-function addField(parent: Element, id: string, text: string, value: string) {
+function addField(
+  parent: Element,
+  id: string,
+  text: string,
+  value: string,
+  made?: (instance: ReturnType<typeof input>) => void
+) {
   const label = parent.appendChild(document.createElement("label"))
   label.append(text)
   const el = label.appendChild(document.createElement("input"))
   const instance = input({ id, defaultValue: value })
+  made?.(instance)
   const unbind = bind(instance.part("root"), el)
   return () => {
     unbind()
@@ -91,7 +99,11 @@ test("no tool reads what is private, and no step or look changes what needs a pe
       "canary-aria"
     ),
   ]
+  // On the page at first, then hidden and changed.
+  const stowed = document.body.appendChild(document.createElement("div"))
+  let coupon!: ReturnType<typeof input>
   cleanups.push(
+    addField(stowed, "coupon", "Coupon", "SAVE10", (made) => (coupon = made)),
     addSwitch(document.body, "terms", "Accept the terms"),
     addField(
       inside("data-agent-hidden"),
@@ -164,9 +176,23 @@ test("no tool reads what is private, and no step or look changes what needs a pe
   )
   billing.trigger.setAttribute("data-agent-confirm", "Shows what you pay")
 
+  const code = numberInput({
+    id: "code",
+    defaultValue: 1,
+    onValueCommit: () => {
+      throw new Error("canary-commit")
+    },
+  })
+  const codeField = inside("data-agent-secret").appendChild(
+    document.createElement("input")
+  )
+  codeField.setAttribute("aria-label", "Backup code")
+  cleanups.push(bind(code.part("control"), codeField), () => code.destroy())
+
   const agent = createAgent()
   const told: unknown[] = []
-  cleanups.push(agent.subscribe((change) => told.push(change)))
+  const unsubscribe = agent.subscribe((change) => told.push(change))
+  cleanups.push(unsubscribe)
   const act = async (...steps: Parameters<typeof agent.act>[0]["steps"]) => {
     const outcome = await agent.act({ steps })
     told.push(outcome)
@@ -193,6 +219,12 @@ test("no tool reads what is private, and no step or look changes what needs a pe
   const read = await act({ ref: "Recovery code", action: "expect", args: [""] })
   expect(read.error?.message).toContain("is private")
   await act({ ref: "PIN", action: "setValue", args: ["0000"] })
+  const committed = await act({
+    ref: "Backup code",
+    action: "setValue",
+    args: [2],
+  })
+  expect(committed.error?.message).toContain("failed: [redacted]")
   for (const query of [
     { text: "plan" },
     { text: "draft" },
@@ -204,8 +236,15 @@ test("no tool reads what is private, and no step or look changes what needs a pe
     told.push(await agent.query(query))
   }
   unshown.forEach((off) => off())
+  // `subscribe` hears every settled change outside `data-agent-hidden`, so
+  // what the page changes while it's hidden is checked against the tools.
+  unsubscribe()
+  stowed.hidden = true
+  coupon.api.setValue("canary-stowed")
   await act({ ref: "Accept the terms", action: "setChecked", args: [false] })
   told.push(agent.snapshot())
+  told.push(await agent.query({ text: "Coupon" }))
+  told.push(await agent.query({ closed: true }))
 
   expect(JSON.stringify(told)).not.toMatch(/canary|kanary/i)
   for (const section of [danger, billing]) {

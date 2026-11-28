@@ -3,6 +3,7 @@
 // row text read from its elements, and every change that goes through, settled
 // or step by step, once either entry installs it on the kernel's `watchers`.
 import type { AgentComponent } from "../agent/agent"
+import { commitFrom } from "../../foundation/kernel/change"
 import type { ChangeSource } from "../../foundation/kernel/details"
 import type {
   AgentSurface,
@@ -10,6 +11,7 @@ import type {
   PrimitiveInstance,
   PropSpec,
 } from "../../foundation/kernel/primitive-types"
+import { sameValue } from "../../foundation/kernel/store"
 import { watchEarlier, watchers } from "../../foundation/kernel/watchers"
 import {
   checkMarks,
@@ -102,6 +104,11 @@ const offPage = new Map<string, AgentComponent>()
 // The regions each of those was in, for telling look-alikes apart.
 const placeOf = new WeakMap<AgentComponent, string[]>()
 const partsOf = new WeakMap<PrimitiveInstance, ReadonlyMap<string, Part>>()
+const optionsOf = new WeakMap<PrimitiveInstance, () => object>()
+// What an agent's step changed on a key its component commits, like a
+// slider's value, with no commit since, and the value before the step.
+type Uncommitted = Map<string, { details: Details; from: unknown }>
+const uncommitted = new Map<Entry, Uncommitted>()
 let count = 0
 type Listener = (change: ObservedChange, parts: Bound[]) => void
 // Every listener, and whether it hears each step (`live`) rather than settled changes.
@@ -115,7 +122,8 @@ function watch(
     commits,
     agent,
     options,
-  }: Parameters<NonNullable<typeof watchers.add>>[2]
+  }: Parameters<NonNullable<typeof watchers.add>>[2],
+  live: () => object
 ) {
   const entry: Entry = {
     ref: `c${++count}`,
@@ -132,6 +140,7 @@ function watch(
   entries.set(entry.ref, entry)
   byId.set(entry.id, entry)
   partsOf.set(instance, parts)
+  optionsOf.set(instance, live)
   return () => retire(entry)
 }
 
@@ -320,7 +329,7 @@ function componentLabel(parts: Bound[]) {
   }
   // Then any part's own name, keyless first, so an accordion isn't named by
   // its first item, but a slider is by its one thumb. Next, a shown part alone
-  // in its slot with a key of its own, which the web adapter gives every part.
+  // in its slot, keyed alone or with the part around it: the web adapter keys every part.
   const keys = new Set(parts.map((part) => part.key).filter(Boolean))
   const keyed = keys.size === 1 ? parts.filter((part) => part.key) : []
   const sole = parts.filter(
@@ -330,7 +339,9 @@ function componentLabel(parts: Bound[]) {
       !part.el.closest("[hidden]") &&
       parts.every(
         (other) =>
-          other === part || (other.slot !== part.slot && other.key !== part.key)
+          other === part ||
+          (other.slot !== part.slot &&
+            (other.key !== part.key || other.el.contains(part.el)))
       )
   )
   for (const part of [
@@ -420,10 +431,18 @@ function report(
   previous: unknown
 ) {
   const entry = byId.get(id)
-  if (!listeners.size || !entry) {
+  if (!entry) {
     return
   }
   const { source } = details
+  if (source === "agent" && entry.commits?.includes(key)) {
+    const changed: Uncommitted = uncommitted.get(entry) ?? new Map()
+    const from = changed.has(key) ? changed.get(key)!.from : previous
+    uncommitted.set(entry, changed.set(key, { details, from }))
+  }
+  if (!listeners.size) {
+    return
+  }
   const held =
     !!entry.commits?.includes(key) &&
     source !== "programmatic" &&
@@ -441,11 +460,59 @@ function report(
 // call from code makes, was reported as it changed.
 function settle(id: string, key: string, value: unknown, details: Details) {
   const entry = byId.get(id)
+  if (entry) {
+    uncommitted.get(entry)?.delete(key)
+  }
   if (!listeners.size || !entry?.started.has(key)) {
     return
   }
   send(entry, key, value, details, entry.started.get(key), false)
   entry.started.delete(key)
+}
+
+// An agent's step is a whole interaction with its component, like a drag that
+// ended, so a key it changed there commits as the step ends, unless the value
+// is what it was. What a callback changes on another component is code's change.
+function commitStep(step?: { entry: Entry; secret: boolean }) {
+  const changed = step && uncommitted.get(step.entry)
+  uncommitted.clear()
+  const instance = step?.entry.instance.deref()
+  const options = instance && optionsOf.get(instance)
+  if (!changed || !options) {
+    return
+  }
+  const { entry, secret } = step
+  const state = instance.get() as Record<string, unknown>
+  const commit = commitFrom(
+    { id: entry.id, label: entry.component, options },
+    () => "agent"
+  )
+  let failed: { error: unknown } | undefined
+  for (const [key, { details, from }] of changed) {
+    const { cancel, canceled, source, ...given } = details as Details & {
+      cancel?: unknown
+      canceled?: unknown
+    }
+    if (sameValue(state[key], from)) {
+      continue
+    }
+    try {
+      commit(key, state[key], given)
+    } catch (error) {
+      // What a private field's handler throws can repeat its value.
+      failed ??= {
+        error:
+          secret || entry.secret
+            ? new Error(
+                `The commit of ${entry.label ?? entry.component} (${entry.ref}) failed: [redacted]`
+              )
+            : error,
+      }
+    }
+  }
+  if (failed) {
+    throw failed.error
+  }
 }
 
 // A change as a record for the listeners it's for, named the way the agent's
@@ -526,6 +593,7 @@ function elementsOf(ref: string) {
 export {
   bound,
   type Bound,
+  commitStep,
   componentLabel,
   elementsOf,
   entries,

@@ -13,6 +13,7 @@ import {
   withSource,
   type ChangeSource,
 } from "./details"
+import { isDestroying } from "./keep"
 import { callbackName } from "./option-names"
 import type {
   PrimitiveContext,
@@ -177,6 +178,44 @@ function changeFrom<Options, State extends object>(
   }
 }
 
+// `createCommit` (in `input-source.ts`) with its source given.
+function commitFrom(context: LogContext, source: InputSource) {
+  return (
+    key: string,
+    value: unknown,
+    details: { reason: string; event?: Event; [extra: string]: unknown }
+  ) => {
+    if (isDestroying()) {
+      return
+    }
+    const commitDetails = createDetails(
+      details,
+      source(details.reason, details.event),
+      false
+    )
+    const callbacks = context.options() as Record<
+      string,
+      ((value: unknown, details: object) => void) | undefined
+    >
+    const callback = callbacks[callbackName(key, "Commit")]
+    if (callback) {
+      withSource(commitDetails.source, () => callback(value, commitDetails))
+    }
+    if (dev) {
+      emit({
+        type: "commit",
+        component: context.label,
+        id: context.id,
+        key,
+        value,
+        reason: details.reason,
+        source: commitDetails.source,
+      })
+    }
+    watchers.commit?.(context.id, key, value, commitDetails)
+  }
+}
+
 /**
  * Records a state write that isn't a change anyone can refuse, like an action
  * going pending: the devtools see it, and `debug` logs it. Pass `source` when
@@ -205,4 +244,4 @@ function log(
   debug(context, key, value, details.reason, source)
 }
 
-export { changeFrom, log }
+export { changeFrom, commitFrom, log }

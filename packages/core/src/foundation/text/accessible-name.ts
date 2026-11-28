@@ -191,4 +191,4 @@ function hasAccessibleName(el: Element) {
   return firstName(el, labelsLast) !== ""
 }
 
-export { accessibleName, hasAccessibleName, namedByContent, roleOf }
+export { accessibleName, apart, hasAccessibleName, namedByContent, roleOf }

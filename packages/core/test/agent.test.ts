@@ -595,6 +595,54 @@ describe("agent", () => {
     })
   })
 
+  test("how a private field shows isn't redacted: a password's visible and a list's open", async () => {
+    const agent = createAgent()
+    const password = passwordInput({ id: "secret", defaultValue: "hunter2" })
+    const root = document.body.appendChild(document.createElement("div"))
+    const el = root.appendChild(document.createElement("input"))
+    el.setAttribute("aria-label", "Password")
+    const plan = select({ id: "plan", items: ["Free", "Pro"] })
+    const region = document.body.appendChild(document.createElement("div"))
+    region.setAttribute("data-agent-secret", "")
+    const trigger = region.appendChild(document.createElement("button"))
+    trigger.setAttribute("aria-label", "Plan")
+    cleanups.push(
+      bind(password.part("root"), root),
+      bind(password.part("control"), el),
+      bind(plan.part("trigger"), trigger),
+      () => password.destroy(),
+      () => plan.destroy(),
+      () => root.remove(),
+      () => region.remove()
+    )
+    const read = (label: string) =>
+      agent.snapshot().find((component) => component.label === label)
+    expect(read("Password")).toMatchObject({
+      value: "[redacted]",
+      visible: false,
+    })
+    expect(read("Plan")).toMatchObject({ open: false })
+    const outcome = await agent.act({
+      steps: [
+        { ref: "Password", action: "setVisible", args: [true] },
+        { ref: "Plan", action: "setOpen", args: [true] },
+      ],
+    })
+    expect(outcome).toMatchObject({
+      ok: true,
+      steps: [
+        { changes: [{ key: "visible", value: true }] },
+        { changes: [{ key: "open", value: true }] },
+      ],
+    })
+    expect(read("Password")).toMatchObject({
+      value: "[redacted]",
+      visible: true,
+    })
+    expect(read("Plan")).toMatchObject({ open: true })
+    expect(JSON.stringify(outcome)).not.toContain("hunter2")
+  })
+
   test("registerTools registers the three methods as WebMCP tools, and unregisters them", async () => {
     const tools = new Map<
       string,
@@ -1138,6 +1186,155 @@ describe("agent", () => {
     })
     expect(outcome.ok).toBe(false)
     expect(instance.get().value).toBeNull()
+  })
+
+  const methods = [
+    { id: "standard", name: "Standard" },
+    { id: "express", name: "Express" },
+  ]
+  const methodKey = (method: { id: string }) => method.id
+
+  // Items with object values, keyed the way an adapter keys them.
+  function mountMethods(
+    instance: {
+      api: { internal: { keyOf: (value: unknown) => string } }
+      part: (slot: "item", props: { id: string; value: unknown }) => unknown
+    },
+    parent: Element = document.body
+  ) {
+    for (const method of methods) {
+      const item = parent.appendChild(document.createElement("div"))
+      item.textContent = method.name
+      cleanups.push(
+        bind(
+          instance.part("item", {
+            id: instance.api.internal.keyOf(method),
+            value: method,
+          }) as Parameters<typeof bind>[0],
+          item
+        )
+      )
+    }
+  }
+
+  test("setValue by an item's key or label sets the item's own object value in a select", async () => {
+    const agent = createAgent()
+    const instance = select({ id: "shipping", itemToValue: methodKey })
+    const trigger = document.body.appendChild(document.createElement("button"))
+    trigger.setAttribute("aria-label", "Shipping")
+    cleanups.push(bind(instance.part("trigger"), trigger), () =>
+      instance.destroy()
+    )
+    mountMethods(instance)
+    for (const [named, held] of [
+      ["express", methods[1]],
+      ["Standard", methods[0]],
+    ] as const) {
+      const outcome = await agent.act({
+        steps: [{ ref: "Shipping", action: "setValue", args: [named] }],
+      })
+      expect(outcome.ok, outcome.error?.message).toBe(true)
+      expect(instance.get().value).toBe(held)
+    }
+  })
+
+  test("setValue by an item's key sets the item's own object value in a combobox", async () => {
+    const agent = createAgent()
+    const instance = combobox({
+      id: "method",
+      itemToValue: methodKey,
+      itemToLabel: (method: { name: string }) => method.name,
+    })
+    const field = document.body.appendChild(document.createElement("input"))
+    field.setAttribute("aria-label", "Method")
+    cleanups.push(bind(instance.part("input"), field), () => instance.destroy())
+    mountMethods(instance)
+    const outcome = await agent.act({
+      steps: [{ ref: "Method", action: "setValue", args: ["express"] }],
+    })
+    expect(outcome.ok, outcome.error?.message).toBe(true)
+    expect(instance.get().value).toBe(methods[1])
+    expect(field.value).toBe("Express")
+  })
+
+  test("setValue by keys and labels sets each item's own object value in a multiple listbox", async () => {
+    const agent = createAgent()
+    const instance = listbox({
+      id: "methods",
+      multiple: true,
+      itemToValue: methodKey,
+    })
+    const root = document.body.appendChild(document.createElement("div"))
+    root.setAttribute("aria-label", "Methods")
+    cleanups.push(bind(instance.part("root"), root), () => instance.destroy())
+    mountMethods(instance, root)
+    expect(
+      agent.snapshot().find(({ label }) => label === "Methods")?.items
+    ).toEqual([
+      { value: "standard", label: "Standard" },
+      { value: "express", label: "Express" },
+    ])
+    const outcome = await agent.act({
+      steps: [
+        { ref: "Methods", action: "setValue", args: [["express", "Standard"]] },
+      ],
+    })
+    expect(outcome.ok, outcome.error?.message).toBe(true)
+    expect(instance.get().value).toEqual([methods[1], methods[0]])
+  })
+
+  test("a list whose data holds object values lists each by its key, and setValue by that key sets the object", async () => {
+    const agent = createAgent()
+    const instance = select({
+      id: "carrier",
+      items: methods.map((method) => ({ value: method, label: method.name })),
+      itemToValue: methodKey,
+    })
+    const trigger = document.body.appendChild(document.createElement("button"))
+    trigger.setAttribute("aria-label", "Carrier")
+    cleanups.push(bind(instance.part("trigger"), trigger), () =>
+      instance.destroy()
+    )
+    expect(
+      agent.snapshot().find(({ label }) => label === "Carrier")?.items
+    ).toEqual([
+      { value: "standard", label: "Standard" },
+      { value: "express", label: "Express" },
+    ])
+    const outcome = await agent.act({
+      steps: [{ ref: "Carrier", action: "setValue", args: ["express"] }],
+    })
+    expect(outcome.ok, outcome.error?.message).toBe(true)
+    expect(instance.get().value).toBe(methods[1])
+  })
+
+  test("an item's label puts a space between its blocks, as it reads on the page", async () => {
+    const agent = createAgent()
+    const instance = listbox({ id: "plan" })
+    const root = document.body.appendChild(document.createElement("div"))
+    root.setAttribute("aria-label", "Plan")
+    cleanups.push(bind(instance.part("root"), root), () => instance.destroy())
+    for (const [value, html] of [
+      ["starter", "<div>Starter</div><div>$12</div>"],
+      ["team", "<span>Team</span><div><b>$2</b>4</div><span>per seat</span>"],
+      ["business", "<span>Busi</span><span>ness</span>"],
+    ]) {
+      const item = root.appendChild(document.createElement("div"))
+      item.innerHTML = html
+      cleanups.push(bind(instance.part("item", { value }), item))
+    }
+    expect(
+      agent.snapshot().find(({ label }) => label === "Plan")?.items
+    ).toEqual([
+      { value: "starter", label: "Starter $12" },
+      { value: "team", label: "Team $24 per seat" },
+      { value: "business", label: "Business" },
+    ])
+    const outcome = await agent.act({
+      steps: [{ ref: "Plan", action: "setValue", args: ["Starter $12"] }],
+    })
+    expect(outcome.ok, outcome.error?.message).toBe(true)
+    expect(instance.get().value).toBe("starter")
   })
 
   test("setValue refuses a disabled option that renders only while its select is open", async () => {
@@ -1806,6 +2003,31 @@ describe("agent", () => {
     })
     expect(outcome.ok).toBe(true)
     expect(instance.get().value).toBe("94107")
+  })
+
+  test("a file input takes no text, so a set fails and its value stays as it was", async () => {
+    const agent = createAgent()
+    const onValueChange = vi.fn()
+    const instance = input({ id: "photo", onValueChange })
+    const el = document.body.appendChild(document.createElement("input"))
+    el.type = "file"
+    el.setAttribute("aria-label", "Photo")
+    cleanups.push(bind(instance.part("root"), el), () => instance.destroy())
+    const outcome = await agent.act({
+      steps: [{ ref: "Photo", action: "setValue", args: ["photo.png"] }],
+    })
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: {
+        step: 0,
+        message: expect.stringContaining('didn\'t take: it is still ""'),
+      },
+    })
+    const photo = agent.snapshot().find((each) => each.label === "Photo")!
+    expect(outcome.values[`${photo.ref} Photo`]).toBe("")
+    expect(photo.value).toBe("")
+    expect(instance.get()).toMatchObject({ value: "", filled: false })
+    expect(onValueChange).not.toHaveBeenCalled()
   })
 
   test("a number is text to a list of text with nothing chosen, and a number to a list of numbers", async () => {
@@ -3007,6 +3229,175 @@ describe("agent act", () => {
     expect(Object.entries(outcome.values)).toContainEqual([
       expect.stringContaining("Deploy failures"),
       true,
+    ])
+  })
+
+  test("a step's change commits once, like a drag that ended or text typed and left", async () => {
+    const agent = createAgent()
+    const onSeats = vi.fn()
+    const seats = slider({
+      id: "seats",
+      defaultValue: 70,
+      onValueCommit: onSeats,
+    })
+    const root = document.body.appendChild(document.createElement("div"))
+    root.setAttribute("aria-label", "Seats")
+    const onPrice = vi.fn()
+    const price = numberInput({
+      id: "price",
+      defaultValue: 70,
+      onValueCommit: onPrice,
+    })
+    const field = document.body.appendChild(document.createElement("input"))
+    field.setAttribute("aria-label", "Price")
+    cleanups.push(
+      bind(seats.part("root"), root),
+      bind(price.part("control"), field),
+      () => seats.destroy(),
+      () => price.destroy()
+    )
+    const heard: unknown[] = []
+    cleanups.push(
+      agent.subscribe((change) => heard.push([change.label, change.value]))
+    )
+    const outcome = await agent.act({
+      steps: [
+        { ref: "Seats", action: "setValue", args: [30] },
+        { ref: "Price", action: "setValue", args: [30] },
+        { ref: "Price", action: "increment" },
+      ],
+    })
+    expect(outcome.ok).toBe(true)
+    expect(onSeats.mock.calls).toEqual([
+      [30, { reason: "imperative", source: "agent", thumb: null }],
+    ])
+    expect(onPrice.mock.calls).toEqual([
+      [30, { reason: "imperative", source: "agent" }],
+      [31, { reason: "imperative", source: "agent" }],
+    ])
+    expect(heard).toEqual([
+      ["Seats", 30],
+      ["Price", 30],
+      ["Price", 31],
+    ])
+  })
+
+  test("a change that didn't take, or one code makes, commits nothing", async () => {
+    const agent = createAgent()
+    const onValueCommit = vi.fn()
+    const instance = slider({ id: "seats", value: 70, onValueCommit })
+    const root = document.body.appendChild(document.createElement("div"))
+    root.setAttribute("aria-label", "Seats")
+    cleanups.push(bind(instance.part("root"), root), () => instance.destroy())
+    const outcome = await agent.act({
+      steps: [{ ref: "Seats", action: "setValue", args: [30] }],
+    })
+    expect(outcome.error?.message).toMatch(/didn't take: it is still 70/)
+    instance.setOptions({ id: "seats", onValueCommit })
+    instance.api.setValue(40)
+    expect(instance.get().value).toBe(40)
+    expect(onValueCommit).not.toHaveBeenCalled()
+    const price = numberInput({ id: "price", value: 70, onValueCommit })
+    const field = document.body.appendChild(document.createElement("input"))
+    field.setAttribute("aria-label", "Price")
+    cleanups.push(bind(price.part("control"), field), () => price.destroy())
+    await agent.act({ steps: [{ ref: "Price", action: "increment" }] })
+    expect(price.get().value).toBe(70)
+    expect(onValueCommit).not.toHaveBeenCalled()
+  })
+
+  test("what a private field's commit throws reads redacted, and a public field's reads as it is", async () => {
+    const agent = createAgent()
+    const mount = (label: string, parent: Element) => {
+      const instance = numberInput({
+        id: label.toLowerCase(),
+        defaultValue: 1,
+        onValueCommit: () => {
+          throw new Error(`${label} 4242 was refused`)
+        },
+      })
+      const field = parent.appendChild(document.createElement("input"))
+      field.setAttribute("aria-label", label)
+      cleanups.push(bind(instance.part("control"), field), () =>
+        instance.destroy()
+      )
+      return instance
+    }
+    const region = document.body.appendChild(document.createElement("div"))
+    region.setAttribute("data-agent-secret", "")
+    cleanups.push(() => region.remove())
+    const pin = mount("Pin", region)
+    const seats = mount("Seats", document.body)
+    const set = (ref: string) =>
+      agent.act({ steps: [{ ref, action: "setValue", args: [2] }] })
+    const secret = await set("Pin")
+    expect(secret.error?.message).toMatch(
+      /^The commit of Pin \(c\d+\) failed: \[redacted\]$/
+    )
+    expect(JSON.stringify(secret)).not.toContain("4242")
+    expect(pin.get().value).toBe(2)
+    expect((await set("Seats")).error?.message).toBe("Seats 4242 was refused")
+    expect(seats.get().value).toBe(2)
+  })
+
+  test("only the component a step names commits, so a private one its callback mounts and changes commits nothing", async () => {
+    const agent = createAgent()
+    const region = document.body.appendChild(document.createElement("div"))
+    region.setAttribute("data-agent-secret", "")
+    cleanups.push(() => region.remove())
+    const onLimitCommit = vi.fn(() => {
+      throw new Error("Limit 4242 was refused")
+    })
+    let limit: ReturnType<typeof numberInput> | undefined
+    const mountLimit = () => {
+      const instance = numberInput({
+        id: "limit",
+        defaultValue: 1,
+        onValueCommit: onLimitCommit,
+      })
+      const field = region.appendChild(document.createElement("input"))
+      field.setAttribute("aria-label", "Limit")
+      cleanups.push(bind(instance.part("control"), field), () =>
+        instance.destroy()
+      )
+      return instance
+    }
+    const onValueCommit = vi.fn()
+    const seats = slider({
+      id: "seats",
+      defaultValue: 1,
+      onValueCommit,
+      onValueChange: (value) => {
+        limit ??= mountLimit()
+        limit.api.setValue((value as number) * 10)
+      },
+    })
+    const root = document.body.appendChild(document.createElement("div"))
+    root.setAttribute("aria-label", "Seats")
+    cleanups.push(bind(seats.part("root"), root), () => seats.destroy())
+    const outcome = await agent.act({
+      steps: [{ ref: "Seats", action: "setValue", args: [2] }],
+    })
+    expect(JSON.stringify(outcome)).not.toContain("4242")
+    expect(outcome.ok).toBe(true)
+    expect(limit!.get().value).toBe(20)
+    expect(onLimitCommit).not.toHaveBeenCalled()
+    expect(onValueCommit).toHaveBeenCalledTimes(1)
+  })
+
+  test("a step that fails after it moved the value still commits where it landed", async () => {
+    const agent = createAgent()
+    const onValueCommit = vi.fn()
+    const instance = slider({ id: "seats", defaultValue: 12, onValueCommit })
+    const root = document.body.appendChild(document.createElement("div"))
+    root.setAttribute("aria-label", "Seats")
+    cleanups.push(bind(instance.part("root"), root), () => instance.destroy())
+    const outcome = await agent.act({
+      steps: [{ ref: "Seats", action: "setValue", args: [2.5] }],
+    })
+    expect(outcome.error?.message).toMatch(/took 3, not 2\.5/)
+    expect(onValueCommit.mock.calls).toEqual([
+      [3, { reason: "imperative", source: "agent", thumb: null }],
     ])
   })
 

@@ -9,6 +9,7 @@ import { checkMarks as warnMarks } from "#dev"
 import { composedClosest } from "../../foundation/platform/platform"
 import {
   accessibleName,
+  apart,
   namedByContent,
   roleOf,
 } from "../../foundation/text/accessible-name"
@@ -41,9 +42,9 @@ const isSecret = (elements: Element[]) =>
 // what `hidden` takes off the page.
 const unread = "input, select, textarea, [hidden]"
 
-// An element's text as it reads, with its spaces collapsed, and without the text of the
-// elements in `skip`, like a tree branch's child items, of `data-agent-hidden` or of what a
-// screen reader skips, like an item's check mark: "Ada Lovelace", not "✓ Ada Lovelace".
+// An element's text as it reads, with its spaces collapsed and one between its blocks, and
+// without the text of the elements in `skip`, like a tree branch's child items, of `data-agent-hidden`
+// or of what a screen reader skips, like an item's check mark: "Ada Lovelace", not "✓ Ada Lovelace".
 function textOf(el: Element, skip: Element[] = []) {
   let text = ""
   const walk = (node: Node) => {
@@ -57,7 +58,12 @@ function textOf(el: Element, skip: Element[] = []) {
         !child.hasAttribute("data-agent-hidden") &&
         child.getAttribute("aria-hidden") !== "true"
       ) {
+        const before = text
+        text = ""
         walk(child)
+        // Only where it has text, since asking for its styles costs.
+        const own = text.trim() && apart(child, text) ? ` ${text} ` : text
+        text = before + own
       }
     }
   }

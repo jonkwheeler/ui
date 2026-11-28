@@ -1,19 +1,15 @@
 // The source of a change an event explains: whether a key, a pointer or a
 // screen reader caused it, read from `kernel/modality`. Details of a change no
 // event explains need only `kernel/details.ts`.
-import { dev, emit } from "#dev"
 import { sourceOf, trackInput } from "./modality"
-import { changeFrom } from "./change"
+import { changeFrom, commitFrom } from "./change"
 import {
   createDetails,
   resolveSource,
   withSource,
   type ChangeSource,
 } from "./details"
-import { isDestroying } from "./keep"
-import { callbackName } from "./option-names"
 import type { PrimitiveContext, ReasonFor } from "./primitive-types"
-import { watchers } from "./watchers"
 
 /**
  * How a change came about, from its reason, its event and the change that caused it.
@@ -66,7 +62,7 @@ function createCommit<Options, State extends object>(
   context: PrimitiveContext<Options, State, any>,
   source: (reason: string, event?: Event) => ChangeSource = inputSource()
 ) {
-  return <
+  return commitFrom(context, source) as <
     Key extends {
       [
         Name in keyof State & string
@@ -80,36 +76,7 @@ function createCommit<Options, State extends object>(
       event?: Event
       [extra: string]: unknown
     }
-  ) => {
-    if (isDestroying()) {
-      return
-    }
-    const commitDetails = createDetails(
-      details,
-      source(details.reason, details.event),
-      false
-    )
-    const callbacks = context.options() as Record<
-      string,
-      ((value: unknown, details: object) => void) | undefined
-    >
-    const callback = callbacks[callbackName(key, "Commit")]
-    if (callback) {
-      withSource(commitDetails.source, () => callback(value, commitDetails))
-    }
-    if (dev) {
-      emit({
-        type: "commit",
-        component: context.label,
-        id: context.id,
-        key,
-        value,
-        reason: details.reason,
-        source: commitDetails.source,
-      })
-    }
-    watchers.commit?.(context.id, key, value, commitDetails)
-  }
+  ) => void
 }
 
 /**

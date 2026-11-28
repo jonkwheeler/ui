@@ -114,7 +114,7 @@ In development, a misspelled mark such as `data-agent-confim` logs a warning wit
 
 ## Cancel a Value Change
 
-An agent's changes reach the same callbacks as a person's changes. Check `details.source` to tell them apart, and call `details.cancel()` to keep the current value.
+An agent's changes reach the same callbacks as a person's changes. Check `details.source` to tell them apart, and call `details.cancel()` to keep the current value. A step that changes a Slider or a Number Input also calls `onValueCommit` once, the way a drag does when it ends.
 
 For example, add this prop to the Select in `src/App.tsx` to refuse an agent's request to choose Asia Pacific:
 

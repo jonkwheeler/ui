@@ -465,7 +465,7 @@ function definePrimitive<
       },
     }
     standFor(instance, store)
-    watchWhileKept(instance, parts, definition)
+    watchWhileKept(instance, parts, definition, context.options)
     if (dev) {
       emit({ type: "instance", action: "create", ...from, controlled })
     }

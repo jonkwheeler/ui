@@ -29,7 +29,8 @@ const watchers: {
   add?: (
     instance: PrimitiveInstance,
     parts: ReadonlyMap<string, Part>,
-    definition: WatchedDefinition
+    definition: WatchedDefinition,
+    options: () => object
   ) => () => void
   change?: (
     id: string,
@@ -59,7 +60,8 @@ const watchLater = new WeakMap<PrimitiveInstance, () => void>()
 function watchWhileKept(
   instance: PrimitiveInstance,
   parts: ReadonlyMap<string, Part>,
-  definition: WatchedDefinition
+  definition: WatchedDefinition,
+  options: () => object
 ) {
   let unwatch: (() => void) | undefined
   let waiting: WeakRef<PrimitiveInstance> | undefined
@@ -73,13 +75,13 @@ function watchWhileKept(
   }
   whenKept(() => {
     if (watchers.add) {
-      unwatch = watchers.add(instance, parts, definition)
+      unwatch = watchers.add(instance, parts, definition, options)
     } else if (typeof document !== "undefined") {
       earlier.add((waiting = new WeakRef(instance)))
       // Weakly held, by the instance, so the list never keeps one alive.
       watchLater.set(
         instance,
-        () => (unwatch = watchers.add?.(instance, parts, definition))
+        () => (unwatch = watchers.add?.(instance, parts, definition, options))
       )
       // Instances a framework made and threw away are never destroyed. Their refs go now and then.
       if (earlier.size % 1000 === 0) {

@@ -11,7 +11,7 @@ export {
 export { afterBind } from "./after-bind"
 export { checkedAttrs, idPart, openAttrs } from "./attrs"
 export { flagWhileBound, keyWhileBound, later, settleFlag } from "./bound-keys"
-export { changeFrom, log } from "./change"
+export { changeFrom, commitFrom, log } from "./change"
 export { createController, isControllerAttached } from "./controller"
 export { deriveFromOptions, deriveState } from "./derive"
 export {
