@@ -31,10 +31,12 @@ import {
   createSignal,
   createUniqueId,
   For,
+  getOwner,
   isStatic,
   merge,
   omit,
   onCleanup,
+  runWithOwner,
   Show,
   untrack,
   useContext,
@@ -54,6 +56,7 @@ import {
   providePrimitive,
   renderStatic,
   rootScope,
+  useNearest,
   usePart,
   usePrimitive,
   type PartProps,
@@ -70,16 +73,12 @@ const parts = createParts(menuPrimitive, { separator: "div", shortcut: "span" })
 
 type MenuContextValue = PrimitiveHandle<typeof menuPrimitive>
 
-const MenuContext = createContext<MenuContextValue | null>(null)
-// Where root popups render. Set on <Menu> or <MenuContent>.
-const ContainerContext = createContext<() => PopupContainer>(() => undefined)
-// Whether shortcuts show Apple's glyphs, from the root menu.
-const AppleContext = createContext<() => boolean>(() => false)
-// Where a MenuContent among the menu's children says it's there, so a data
-// menu renders its own content only when there's none.
-const OwnContentContext = createContext<((present: boolean) => void) | null>(
-  null
-)
+type MenuMeta = {
+  container?: () => PopupContainer
+  apple: () => boolean
+  setOwnContent?: (present: boolean) => void
+}
+const menuMeta = new WeakMap<MenuContextValue, MenuMeta>()
 const GroupContext = createContext<string | null>(null)
 // A radio group's name, and its value for the items that key on it.
 const RadioGroupContext = createContext<{
@@ -95,7 +94,7 @@ const ItemContext = createContext<{
 } | null>(null)
 
 function useMenu() {
-  const context = useContext(MenuContext)
+  const context = useNearest(menuPrimitive)
   if (!context) {
     throw new Error("Menu parts must be used inside <Menu>.")
   }
@@ -121,40 +120,55 @@ type MenuProps = MenuOptions & {
 const Menu = /* @__PURE__ */ rootScope(function Menu(props: MenuProps) {
   const menubar = useContext(MenubarContext)
   const options = omit(props, "children", "container")
-  const menu = usePrimitive(menuPrimitive, () => ({
-    ...options,
-    menubar: menubar ? () => menubar.api : undefined,
-  }))
-  useControllerEntry(() => props.controller, menu)
-  const apple = appleSignal(menu)
-  // Written by a MenuContent among the children, while the children render.
-  const [hasContent, setHasContent] = createChildFlag()
-  return (
-    <MenuContext value={menu}>
-      <ContainerContext value={() => props.container}>
-        <AppleContext value={apple}>
-          {providePrimitive(menu, () => (
-            <>
-              {/* A menu inside this one's content is no item of the menubar. */}
-              <MenubarContext value={null}>
-                <OwnContentContext value={setHasContent}>
-                  {props.children}
-                </OwnContentContext>
-              </MenubarContext>
-              <OwnContentContext value={null}>
-                <Show when={props.items && !hasContent()}>
-                  <MenuContent>
-                    <MenuItems items={props.items ?? []} />
-                  </MenuContent>
-                </Show>
-              </OwnContentContext>
-            </>
-          ))}
-        </AppleContext>
-      </ContainerContext>
-    </MenuContext>
+  const menu = usePrimitive(
+    menuPrimitive,
+    menubar ? () => ({ ...options, menubar: () => menubar.api }) : () => options
   )
+  if (
+    untrack(() => !isStatic(props, "controller") || props.controller != null)
+  ) {
+    useControllerEntry(() => props.controller, menu)
+  }
+  const hasData = untrack(
+    () => !isStatic(props, "items") || props.items != null
+  )
+  const ownContent = hasData ? createChildFlag() : undefined
+  menuMeta.set(menu, {
+    container: () => props.container,
+    apple: appleSignal(menu),
+    setOwnContent: ownContent?.[1],
+  })
+  const children = () =>
+    menubar ? (
+      // A menu inside this one's content is no item of the menubar.
+      <MenubarContext value={null}>{props.children}</MenubarContext>
+    ) : (
+      props.children
+    )
+  if (!ownContent) {
+    return providePrimitive(menu, children)
+  }
+  const [hasContent] = ownContent
+  return providePrimitive(menu, () => (
+    <>
+      {children()}
+      <Show when={props.items && !hasContent()}>
+        <MenuDataContent items={props.items ?? []} />
+      </Show>
+    </>
+  ))
 })
+
+function MenuDataContent(props: { items: MenuData }) {
+  return renderMenuContent(
+    {
+      get children() {
+        return <MenuItems items={props.items} />
+      },
+    },
+    false
+  )
+}
 
 // Children, called with the part's state when they're a function of it.
 const withState = (children: unknown, state: unknown) =>
@@ -164,9 +178,8 @@ const withState = (children: unknown, state: unknown) =>
 // client render agree. Item state doesn't carry the platform, so the root menu
 // listens for it, once for every item, from the first shortcut that renders.
 function appleSignal(menu: MenuContextValue) {
+  const owner = getOwner()
   let apple: (() => boolean) | undefined
-  let unsubscribe: (() => void) | undefined
-  onCleanup(() => unsubscribe?.())
   return () => {
     if (!apple) {
       // Written from core's listeners, which can fire inside a disposal, like a
@@ -174,7 +187,10 @@ function appleSignal(menu: MenuContextValue) {
       const [read, write] = createSignal(menu.state.apple, { ownedWrite: true })
       apple = read
       if (!isServer) {
-        unsubscribe = menu.instance.subscribe(() => write(menu.state.apple))
+        const unsubscribe = menu.instance.subscribe(() =>
+          write(menu.state.apple)
+        )
+        runWithOwner(owner, () => onCleanup(unsubscribe))
       }
     }
     return apple()
@@ -190,10 +206,7 @@ type TriggerProps = MenuTriggerProps
 function MenuTrigger(
   props: Omit<PartProps<"button", MenuTriggerState>, Clashing> & TriggerProps
 ) {
-  const menu = useControllerTarget(
-    () => props.controller,
-    useContext(MenuContext)
-  )
+  const nearest = useNearest(menuPrimitive) ?? null
   const rest = omit(
     props,
     "disabled",
@@ -202,6 +215,19 @@ function MenuTrigger(
     "shortcut",
     "controller"
   )
+  const trigger = () => ({
+    disabled: props.disabled,
+    focusableWhenDisabled: props.focusableWhenDisabled,
+    payload: props.payload,
+    shortcut: props.shortcut,
+  })
+  if (
+    nearest &&
+    untrack(() => isStatic(props, "controller") && props.controller == null)
+  ) {
+    return triggerPart(nearest, "trigger", "button", trigger, rest)
+  }
+  const menu = useControllerTarget(() => props.controller, nearest)
   return (
     <Show
       when={menu()}
@@ -224,20 +250,7 @@ function MenuTrigger(
         })
       )}
     >
-      {(menu) =>
-        triggerPart(
-          menu,
-          "trigger",
-          "button",
-          () => ({
-            disabled: props.disabled,
-            focusableWhenDisabled: props.focusableWhenDisabled,
-            payload: props.payload,
-            shortcut: props.shortcut,
-          }),
-          rest
-        )
-      }
+      {(menu) => triggerPart(menu, "trigger", "button", trigger, rest)}
     </Show>
   )
 }
@@ -249,11 +262,20 @@ function MenuTrigger(
 function MenuContextTrigger(
   props: PartProps<"div", MenuContextTriggerState> & MenuContextTriggerProps
 ) {
-  const menu = useControllerTarget(
-    () => props.controller,
-    useContext(MenuContext)
-  )
+  const nearest = useNearest(menuPrimitive) ?? null
   const rest = omit(props, "disabled", "payload", "controller")
+  const trigger = () => ({
+    disabled: props.disabled,
+    payload: props.payload,
+  })
+  if (
+    nearest &&
+    untrack(() => isStatic(props, "controller") && props.controller == null)
+  ) {
+    nearest.instance.use(menuContextTrigger)
+    return triggerPart(nearest, "context-trigger", "div", trigger, rest)
+  }
+  const menu = useControllerTarget(() => props.controller, nearest)
   return (
     <Show
       when={menu()}
@@ -269,13 +291,7 @@ function MenuContextTrigger(
     >
       {(menu) => (
         menu.instance.use(menuContextTrigger),
-        triggerPart(
-          menu,
-          "context-trigger",
-          "div",
-          () => ({ disabled: props.disabled, payload: props.payload }),
-          rest
-        )
+        triggerPart(menu, "context-trigger", "div", trigger, rest)
       )}
     </Show>
   )
@@ -293,16 +309,11 @@ function triggerPart(
   return usePart(menu, slot, () => ({ id, ...trigger() }), props, tag)
 }
 
-/**
- * The popup that holds the items, positioned against the trigger that opened it.
- * @stable
- */
-function MenuContent<Payload = unknown>(
-  props: PartProps<"div", MenuContentState<Payload>> & MenuContentProps
+function renderMenuContent<Payload = unknown>(
+  props: PartProps<"div", MenuContentState<Payload>> & MenuContentProps,
+  registerOwn: boolean
 ) {
   const menu = useMenu()
-  const fromRoot = useContext(ContainerContext)
-  const target = usePopupContainer(() => props.container ?? fromRoot())
   const content = () => ({
     side: props.side,
     align: props.align,
@@ -314,33 +325,51 @@ function MenuContent<Payload = unknown>(
     finalFocus: props.finalFocus,
     keepMounted: props.keepMounted,
   })
-  const rest = omit(
-    props,
-    "side",
-    "align",
-    "sideOffset",
-    "alignOffset",
-    "collisionPadding",
-    "arrowPadding",
-    "anchor",
-    "finalFocus",
-    "keepMounted",
-    "container"
-  )
-  const element = () => usePart(menu, "content", content, rest, "div")
   // Submenus render inside their parent's popup.
   const nested = menu.state.nested
+  const meta = menuMeta.get(menu)
   // A root content tells its menu it's there. A submenu's content is no menu's own content.
-  const register = nested ? null : useContext(OwnContentContext)
-  register?.(true)
-  onCleanup(() => register?.(false))
+  if (registerOwn && !nested && meta?.setOwnContent) {
+    meta.setOwnContent(true)
+    onCleanup(() => meta.setOwnContent!(false))
+  }
   return (
     <Show when={menu.present("content", content)}>
-      {nested
-        ? element()
-        : renderPopup(() => sheetViewport(menu, element), target)}
+      {(() => {
+        const rest = omit(
+          props,
+          "side",
+          "align",
+          "sideOffset",
+          "alignOffset",
+          "collisionPadding",
+          "arrowPadding",
+          "anchor",
+          "finalFocus",
+          "keepMounted",
+          "container"
+        )
+        const element = () => usePart(menu, "content", content, rest, "div")
+        if (nested) {
+          return element()
+        }
+        const target = usePopupContainer(
+          () => props.container ?? meta?.container?.()
+        )
+        return renderPopup(() => sheetViewport(menu, element), target)
+      })()}
     </Show>
   )
+}
+
+/**
+ * The popup that holds the items, positioned against the trigger that opened it.
+ * @stable
+ */
+function MenuContent<Payload = unknown>(
+  props: PartProps<"div", MenuContentState<Payload>> & MenuContentProps
+) {
+  return renderMenuContent(props, true)
 }
 
 /**
@@ -372,10 +401,10 @@ function MenuItem(
     "destructive",
     "onSelect"
   )
-  if (isStatic(props, "shortcut") && !untrack(() => props.shortcut)) {
+  if (untrack(() => isStatic(props, "shortcut") && !props.shortcut)) {
     return usePart(menu, "item", item, rest, "div")
   }
-  const apple = useContext(AppleContext)
+  const apple = menuMeta.get(menu)?.apple ?? (() => false)
   const withShortcut = merge(rest, {
     get children() {
       return (state: MenuItemState) => (
@@ -653,11 +682,10 @@ const MenuSub = /* @__PURE__ */ rootScope(function MenuSub(
     ...options,
     parent: parent.api,
   }))
-  return (
-    <MenuContext value={menu}>
-      {providePrimitive(menu, () => props.children)}
-    </MenuContext>
-  )
+  menuMeta.set(menu, {
+    apple: menuMeta.get(parent)?.apple ?? (() => false),
+  })
+  return providePrimitive(menu, () => props.children)
 })
 
 /**

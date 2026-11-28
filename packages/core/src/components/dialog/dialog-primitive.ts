@@ -70,6 +70,12 @@ function defineDialog<
       apple: initialApple(),
       presentation: "dialog",
     }),
+    // A dialog that may present as a sheet sets that up as it mounts.
+    asleep: (options) =>
+      options.open === undefined &&
+      !options.defaultOpen &&
+      !options.controller &&
+      !(options as { presentation?: string }).presentation,
     sync: (options) => ({
       ...(options.open !== undefined && { open: options.open }),
       // An alert dialog is always modal.
@@ -83,7 +89,7 @@ function defineDialog<
       ),
     // Without an extension there are no extra parts, and spreading undefined adds none.
     slots: (slot) => ({
-      ...dialogSlots(slot, { name }),
+      ...dialogSlots(slot, { name, alert }),
       ...(extension?.slots(slot) as Extra),
     }),
     agent: { actions: ["setOpen"] },

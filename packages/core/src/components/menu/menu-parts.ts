@@ -28,8 +28,10 @@ import { on, selectEvent } from "../../foundation/kernel/events"
 import { trackInput } from "../../foundation/kernel/modality"
 import { awake, firstAsleep, onProps } from "../../foundation/kernel/part"
 import type { SlotFactory } from "../../foundation/kernel/primitive-types"
-import { adoptPlatform } from "../../foundation/shortcuts/shortcut-slot"
-import { shortcuts as shortcutManager } from "../../foundation/shortcuts/shortcuts"
+import {
+  adoptPlatform,
+  bindPartShortcut,
+} from "../../foundation/shortcuts/shortcut-slot"
 import { selects } from "../../foundation/kernel/selects"
 
 import type {
@@ -140,7 +142,17 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
       payload: "value",
       shortcut: "string",
     },
-    selects: selects({ values: [], triggerElements: ({ key }) => [key] }),
+    selects: selects({
+      values: [],
+      presentation: [],
+      openChild: [],
+      payload: [],
+      groupLabels: [],
+      triggers: [],
+      shortcutItems: [],
+      apple: ({ props }) => (props.shortcut ? [true, false] : []),
+      triggerElements: ({ key }) => [key],
+    }),
     // A submenu's trigger is an item of its parent menu, and a menubar's an item
     // of the menubar. Any other is a button, whatever it's rendered as.
     role: (state, part) => {
@@ -322,9 +334,6 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
     // A root trigger's own state and shortcuts are in place while its menu sleeps.
     asleep(el, part) {
       const { store, key, id } = part
-      // The client knows its platform now. Vue binds refs mid-hydration, so
-      // the switch waits a microtask, which still lands before paint.
-      adoptPlatform(store)
       checkName(el, "The trigger", { component: "menu", id })
       // A key press that wakes the menu opens it as the keyboard does, which this tells from the start.
       trackInput()
@@ -351,7 +360,7 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
       const cleanups = [
         keyWhileBound(store, "triggers", key),
         // A root trigger's shortcut opens the menu with its first item focused, or closes it.
-        shortcutManager.register(
+        bindPartShortcut(
           () => part.props.shortcut,
           (event) => {
             // A disabled menubar disables its triggers' shortcuts too.
@@ -371,7 +380,9 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
               })
             }
           },
-          { layer: el }
+          { layer: el },
+          (listener) => onProps(part, listener),
+          store
         ),
         // Data menus run their items' shortcuts while closed.
         bindItemShortcuts(store, el, (value, event) =>
@@ -536,7 +547,8 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
       },
     },
     bind(el, part) {
-      const { api, key, props: initial } = part
+      const { api, key, props: initial, store } = part
+      adoptPlatform(store)
       const parentMenu = api.parentMenu()
       // Read on every check, so the popup follows prop changes while open.
       const props = () => api.itemProps<ContentProps>("content", key) ?? initial

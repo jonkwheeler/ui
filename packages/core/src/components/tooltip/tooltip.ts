@@ -5,6 +5,7 @@ import { announce } from "../../foundation/platform/announce"
 import {
   ariaKeyshortcuts,
   initialApple,
+  isApple,
 } from "../../foundation/platform/platform"
 import {
   createPopupController,
@@ -357,12 +358,6 @@ function labelContent(el: HTMLElement) {
   }
 }
 
-// A slot whose `bind` runs while the tooltip is asleep.
-const asleepToo = <Slot extends { bind?: unknown }>({
-  bind,
-  ...slot
-}: Slot) => ({ ...slot, ...(bind ? { asleep: bind } : {}) })
-
 /**
  * `tooltip`'s api, which its slots and controller call.
  * Adapters expose it as `api`.
@@ -539,13 +534,32 @@ const tooltipPrimitive = /* @__PURE__ */ definePrimitive({
             checkName(el, "The trigger", { component: "tooltip", id })
           }
           const unbind = bindTrigger(store, key)
-          adoptPlatform(store)
           // Focus that wakes it opens it only from the keyboard, which this tells from the start.
           trackInput()
+          let bound = true
+          let unwatch: (() => void) | undefined
           // The client knows the trigger's name now. A microtask lets hydration finish first.
           queueMicrotask(() => {
-            if (store.get().trigger === key) {
-              store.set({ unnamed: !hasOwnName(el, `${id}-content`) })
+            const state = store.get()
+            const change: Partial<TooltipState> = {}
+            if (state.trigger === key) {
+              change.unnamed = !hasOwnName(el, `${id}-content`)
+            }
+            if (state.apple !== isApple()) {
+              if (state.shortcut) {
+                change.apple = isApple()
+              } else if (bound) {
+                // A shortcut that arrives later takes the platform's names then.
+                unwatch = store.subscribe(() => {
+                  if (store.get().shortcut) {
+                    unwatch!()
+                    adoptPlatform(store)
+                  }
+                })
+              }
+            }
+            if (change.unnamed !== undefined || change.apple !== undefined) {
+              store.set(change)
             }
           })
           // A popover or menu trigger on the same element checks for a name a task later. This
@@ -562,6 +576,8 @@ const tooltipPrimitive = /* @__PURE__ */ definePrimitive({
             )
           }
           return () => {
+            bound = false
+            unwatch?.()
             unname?.()
             unbind()
           }
@@ -606,7 +622,7 @@ const tooltipPrimitive = /* @__PURE__ */ definePrimitive({
 
       // Without keys of its own, it shows the tooltip's shortcut, which names its
       // trigger before the tooltip wakes, and so writes its keys asleep too.
-      shortcut: asleepToo(shortcutSlot(slot, (state) => state.shortcut)),
+      shortcut: shortcutSlot(slot, (state) => state.shortcut),
     }
   },
   agent: { actions: ["setOpen"] },
