@@ -4,12 +4,7 @@ import {
   type TriggerDefinition,
   type TriggerMenuApi,
 } from "@ui-sdk/core/trigger-menu"
-import {
-  createParts,
-  findOwner,
-  instanceOf,
-  wrappedChild,
-} from "./define-element"
+import { createParts, findOwner, instanceOf } from "./define-element"
 import { copy, renderListItems, stashedEmpty, templateOf } from "./list"
 import { popupKinds, popupPortal, popupState } from "./popup"
 
@@ -89,7 +84,10 @@ function defineTriggerMenuElements() {
     input: {
       tag: "ui-trigger-menu-input",
       display: "contents",
-      target: wrappedChild("textarea, input"),
+      // The field can sit inside a wrapper, like the SDK's own <ui-textarea>.
+      target: (el) =>
+        el.querySelector<HTMLElement>("textarea, input") ??
+        (el.firstElementChild as HTMLElement | null),
     },
     content: { tag: "ui-trigger-menu-content", kinds: popupKinds },
     list: { tag: "ui-trigger-menu-list", display: "block" },
