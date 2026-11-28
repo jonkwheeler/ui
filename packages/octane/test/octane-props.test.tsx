@@ -27,10 +27,17 @@ afterEach(async () => {
 })
 
 test("a part sets each ref in an array, and clears each when it unmounts", async () => {
-  const object = { current: null as HTMLElement | null }
-  const calls: (HTMLElement | null)[] = []
+  const object = { current: null as HTMLButtonElement | null }
+  const calls: (HTMLButtonElement | null)[] = []
   await render(
-    <Toggle ref={[object, (el: HTMLElement | null) => calls.push(el)]}>
+    <Toggle
+      ref={[
+        object,
+        (el: HTMLButtonElement | null) => {
+          calls.push(el)
+        },
+      ]}
+    >
       Bold
     </Toggle>
   )
@@ -43,7 +50,7 @@ test("a part sets each ref in an array, and clears each when it unmounts", async
 })
 
 test("a render element's array of refs gets the element", async () => {
-  const object = { current: null as HTMLElement | null }
+  const object = { current: null as HTMLButtonElement | null }
   await render(<Toggle render={<button ref={[object]} />}>Bold</Toggle>)
   expect(object.current).toBeInstanceOf(HTMLButtonElement)
 })

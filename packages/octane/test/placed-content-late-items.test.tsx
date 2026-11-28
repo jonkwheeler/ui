@@ -37,7 +37,7 @@ type Items = typeof fruit | undefined
 
 const cases: {
   name: string
-  render: (items: Items, wrap: boolean) => React.ReactNode
+  render: (items: Items, wrap: boolean) => React.ReactElement
   keys: string
   content: string
 }[] = [

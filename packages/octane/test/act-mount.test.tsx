@@ -38,7 +38,7 @@ afterEach(async () => {
 // Testing Library's `render` mounts in a synchronous act(). Octane's act stays
 // open while it drains after returning, so an update left for after it changes
 // the page without a warning.
-async function updatesAfterRendering(ui: React.ReactNode) {
+async function updatesAfterRendering(ui: React.ReactElement) {
   const error = vi.spyOn(console, "error").mockImplementation(() => {})
   if (!root) {
     container = document.body.appendChild(document.createElement("div"))
