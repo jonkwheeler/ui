@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `0718f402` (2026-11-20, the whole branch against `b4dbe882`: every component, the server-render pipeline and the fork-only CI).
 
-Mirrors `packages/react` at `a404878f`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `f8f33019`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits before `b4dbe882` that needed nothing in Octane, from the replay that brought the port up from `@ui-sdk/react@0.1.0-beta.1`:
 
@@ -82,6 +82,8 @@ What the pin to 0.27.0 fixed, each proved on 0.20.0 and on 0.27.0, and the test 
 - **`@if` and `@for` blocks were hidden from a part that reads its children** (fixed in 0.24.0 by octanejs/octane#3123). Repro: a marked `Inspect` rendering `<b />@if (shown) { <i /> }{shown && <u />}` saw `b,_frag$0,u` on 0.20.0 and sees `b,i,u` on 0.27.0; a keyed `@for` of two rows went from `_frag$1` to `i,i`. The `.tsrx` fixtures write these as `@if` and `@for` again: `tree`'s `TreeGroup`, `combobox`'s and `autocomplete`'s `?late` content (`@if (late) { … } @else { … }`), and the items that label a closed select or combobox in `rows-perf`, `leaks`, `item-icons` and `select-perf`. With those fixtures on 0.20.0, `octane-tsrx` failed 11 `tree.spec` tests, `select.counts` "a closed select whose label the root found renders no options" at both sizes, and "a content with no children renders items that arrive while it's open" in `combobox.items` and `autocomplete.items`; on 0.27.0 they pass.
 - **A JSX element with two type arguments turned off `descriptorChildren` for its whole `.tsrx` module** (fixed in 0.22.0 by `@tsrx/core` 0.6.3, octanejs/octane#3063). Repro: a marked part inside `<Generic<string, boolean>>` saw no children on 0.20.0 and sees `b,i` on 0.27.0. The `select`, `combobox` and `listbox` fixtures write `<Select<string, boolean>>` and the rest again, as `octane.tsx` does, instead of spreading a typed props object. With that on 0.20.0, `select.spec` failed 24 tests on `octane-tsrx`; on 0.27.0 none.
 - **A store update committed a sibling inside `@if` after the siblings that follow it** (fixed in 0.23.1 by octanejs/octane#3124). Repro: four siblings that read one store, the first inside `@if`, attached refs `second,third,fourth,first` on 0.20.0 and `first,second,third,fourth` on 0.27.0. `drawer/octane-tsrx.tsrx` renders both backdrops in `@if (parts.backdrop)` again. With that on 0.20.0, `drawer.enhancements` "a settle runs as a spring sampled into linear(), on translate and the backdrop's opacity" failed on `octane-tsrx`; on 0.27.0 it passes.
+
+- **An unnamed menu radio group that inherits a hidden group's choice doesn't re-render** (upstream #1361, React too). When an unnamed group that shows only some of the time hides, core hands its kept choice to the next unnamed group and `forgetOtherPlace` drops it, but the radio group and items select only `radio:${group}`, not the `radio@N` place key, so the next group shows nothing checked until something else re-renders it. Probes failed the same way on React and Octane; core's test reads `partState` directly and misses it. An upstream fix, not this port's.
 
 ## Revisit
 
