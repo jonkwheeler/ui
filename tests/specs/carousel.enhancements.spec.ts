@@ -299,6 +299,62 @@ test.describe("changes @enhancement", () => {
     await expect.poll(progress).toBe("0.8000")
   })
 
+  test("disabled, it's no carousel until it's turned back on, like at a breakpoint @enhancement", async ({
+    page,
+    open,
+  }) => {
+    await page.setViewportSize({ width: 1000, height: 720 })
+    await open("carousel", { "disabled-media": "(min-width: 900px)" })
+    const region = page.getByRole("region", { name: carouselFixture.label })
+    const slides = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll("[data-slot=carousel-item]")].map(
+          (item) =>
+            ["role", "aria-roledescription", "aria-label", "inert"]
+              .filter((name) => item.hasAttribute(name))
+              .concat((item as HTMLElement).style.cssText || [])
+              .join(" ")
+        )
+      )
+    await expect(region).toHaveCount(0)
+    await expect.poll(slides).toEqual(["", "", "", "", ""])
+    await expect(nextButton(page)).toBeHidden()
+    await expect(
+      page.getByRole("tablist", { name: carouselFixture.indicators })
+    ).toBeHidden()
+    await page.setViewportSize({ width: 600, height: 720 })
+    await expect(region).toBeVisible()
+    await nextButton(page).click()
+    await expectShown(page, 1)
+    await page.setViewportSize({ width: 1000, height: 720 })
+    await expect(region).toHaveCount(0)
+    await expect.poll(slides).toEqual(["", "", "", "", ""])
+    await expect(nextButton(page)).toBeHidden()
+  })
+
+  test("turned off while a finger is down, it rotates again once it's back on @enhancement", async ({
+    page,
+    open,
+  }) => {
+    await page.setViewportSize({ width: 600, height: 720 })
+    await open("carousel", {
+      playing: "",
+      interval: "300",
+      "disabled-media": "(min-width: 900px)",
+    })
+    const region = page.getByRole("region", { name: carouselFixture.label })
+    await page
+      .locator("[data-slot=carousel-viewport]")
+      .evaluate((viewport) => viewport.dispatchEvent(new Event("touchstart")))
+    await expect(region).toHaveAttribute("data-paused", "")
+    await page.setViewportSize({ width: 1000, height: 720 })
+    await expect(region).toHaveCount(0)
+    await page.setViewportSize({ width: 600, height: 720 })
+    await expect(region).not.toHaveAttribute("data-paused")
+    const at = await lastAction(page)
+    await expect.poll(() => lastAction(page)).not.toBe(at)
+  })
+
   test("--carousel-item-progress on each slide says how far it is from rest @enhancement", async ({
     page,
     open,
