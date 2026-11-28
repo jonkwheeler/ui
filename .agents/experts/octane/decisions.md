@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `0718f402` (2026-11-20, the whole branch against `b4dbe882`: every component, the server-render pipeline and the fork-only CI).
 
-Mirrors `packages/react` at `db8f09ff`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `13a20b7f`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits before `b4dbe882` that needed nothing in Octane, from the replay that brought the port up from `@ui-sdk/react@0.1.0-beta.1`:
 
