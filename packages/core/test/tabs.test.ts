@@ -5,6 +5,7 @@ import { idPart } from "../src/foundation/kernel/attrs"
 import { renderVersion } from "../src/foundation/kernel/primitive"
 import { tabs } from "../src/components/tabs/tabs"
 import { attrs, partState, present } from "../src/foundation/kernel/part"
+import { withSource } from "../src/foundation/kernel/details"
 import { kept } from "./kept"
 
 describe("keys", () => {
@@ -109,6 +110,53 @@ describe("selection", () => {
     expect(
       present(instance.part("panel", { value: "b", keepMounted: true }))
     ).toBe(true)
+  })
+
+  test("the panel a person was on stays present when an agent's change leaves it, until a person leaves its tab", () => {
+    const instance = tabs({ id: "t", defaultValue: "a" })
+    const panel = (value: string) => present(instance.part("panel", { value }))
+    withSource("agent", () => instance.api.select("b"))
+    expect([panel("a"), panel("b")]).toEqual([true, true])
+    expect(attrs(instance.part("panel", { value: "a" })).hidden).toBe("")
+    instance.api.select("a", { reason: "item-press" })
+    instance.api.select("c", { reason: "item-press" })
+    expect([panel("a"), panel("b"), panel("c")]).toEqual([false, false, true])
+  })
+
+  test("a tab an agent opened itself isn't kept when the agent moves on", () => {
+    const instance = tabs({ id: "t", defaultValue: "a" })
+    const panel = (value: string) => present(instance.part("panel", { value }))
+    for (const value of ["b", "a", "c", "a"]) {
+      withSource("agent", () => instance.api.select(value))
+    }
+    expect([panel("a"), panel("b"), panel("c")]).toEqual([true, false, false])
+    withSource("agent", () => instance.api.select("b"))
+    expect([panel("a"), panel("b")]).toEqual([true, true])
+  })
+
+  test("a controlled value the app moves itself lets go of a kept panel", () => {
+    const instance = tabs({ id: "t", value: "a" })
+    const panel = (value: string) => present(instance.part("panel", { value }))
+    withSource("agent", () => instance.api.select("b"))
+    instance.setOptions({ id: "t", value: "b" })
+    expect([panel("a"), panel("b")]).toEqual([true, true])
+    instance.setOptions({ id: "t", value: "a" })
+    instance.setOptions({ id: "t", value: "b" })
+    expect([panel("a"), panel("b")]).toEqual([false, true])
+  })
+
+  test("an agent going back to a kept panel in controlled tabs keeps the one a person was on", () => {
+    const instance = tabs({ id: "t", value: "a" })
+    const panel = (value: string) => present(instance.part("panel", { value }))
+    const move = (value: string, source?: "agent") => {
+      const select = () => instance.api.select(value)
+      source ? withSource(source, select) : select()
+      instance.setOptions({ id: "t", value })
+    }
+    move("b", "agent")
+    move("c")
+    move("a", "agent")
+    expect([panel("a"), panel("b"), panel("c")]).toEqual([true, false, true])
   })
 
   test("selecting reports the value and a reason", () => {

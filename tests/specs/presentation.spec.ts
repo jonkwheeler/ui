@@ -1,4 +1,4 @@
-import type { Browser, Locator, Page } from "@playwright/test"
+import type { Browser, BrowserContext, Locator, Page } from "@playwright/test"
 import { expect, menuNamed, test, waitForStill } from "../fixtures"
 import { hasFixture } from "../fixture-files"
 
@@ -371,6 +371,103 @@ test.describe("select", () => {
   })
 })
 
+// A phone that reports itself as an iPhone, for the iOS-only paths.
+async function iPhone(browser: Browser, baseURL: string | undefined) {
+  const phoneContext = await phone(browser, baseURL)
+  await phoneContext.page.addInitScript(() =>
+    Object.defineProperty(Navigator.prototype, "platform", {
+      get: () => "iPhone",
+    })
+  )
+  return phoneContext
+}
+
+// How far a touch drag down from inside `area` moves `sheet` while the finger
+// is still down, through Chromium's DevTools protocol.
+async function pullDown(
+  context: BrowserContext,
+  area: Locator,
+  sheet: Locator
+) {
+  const before = (await sheet.boundingBox())!.y
+  const box = (await area.boundingBox())!
+  const cdp = await context.newCDPSession(area.page())
+  const x = box.x + box.width / 2
+  const y = box.y + 20
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x, y }],
+  })
+  for (let step = 1; step <= 10; step++) {
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x, y: y + step * 10 }],
+    })
+  }
+  const moved = (await sheet.boundingBox())!.y - before
+  await cdp.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  })
+  return moved
+}
+
+test.describe("select on an iPhone", () => {
+  test.beforeEach(({ framework }) => {
+    test.skip(
+      !hasFixture("select", framework),
+      `No select fixture for ${framework}.`
+    )
+    test.skip(
+      test.info().project.use.browserName !== "chromium",
+      "Real touch input goes through Chromium's DevTools protocol."
+    )
+  })
+
+  test("a pull down on its content, scrolled to the top, moves the sheet", async ({
+    browser,
+    baseURL,
+    framework,
+  }) => {
+    const { context, page } = await iPhone(browser, baseURL)
+    await page.goto(
+      `/?fixture=select&framework=${framework}&presentation=sheet`
+    )
+    await page.locator("body[data-mounted]").waitFor({ state: "attached" })
+    await page.addStyleTag({
+      content: '[data-slot="select-content"] { max-height: 96px }',
+    })
+    await page.getByRole("combobox", { name: "Fruit" }).tap()
+    const sheet = page.locator('[data-slot="select-content"]')
+    await waitForStill(sheet)
+    expect(await pullDown(context, sheet, sheet)).toBeGreaterThan(50)
+    await context.close()
+  })
+
+  test("a pull down on a list inside it, scrolled to the top, moves the sheet", async ({
+    browser,
+    baseURL,
+    framework,
+  }) => {
+    const { context, page } = await iPhone(browser, baseURL)
+    await page.goto(
+      `/?fixture=select&framework=${framework}&presentation=sheet&search`
+    )
+    await page.locator("body[data-mounted]").waitFor({ state: "attached" })
+    await page.addStyleTag({
+      content:
+        '[data-slot="select-list"] { display: block; max-height: 96px; overflow: auto }',
+    })
+    await page.getByRole("combobox", { name: "Fruit" }).tap()
+    const sheet = page.locator('[data-slot="select-content"]')
+    await waitForStill(sheet)
+    expect(
+      await pullDown(context, page.getByRole("listbox"), sheet)
+    ).toBeGreaterThan(50)
+    await context.close()
+  })
+})
+
 // Open from the start, `"auto"` renders the default on the server and in the
 // first render, so hydration matches, and decides once the client has bound it.
 test.describe("open from the start with presentation auto", () => {
@@ -590,7 +687,9 @@ for (const sheet of [sheets[0], sheets[4]]) {
     }) => {
       await open(sheet.fixture, { presentation: "sheet" })
       await openWithKeyboard(page, sheet)
-      expect(await pageBlocked(page)).toEqual({ inert: true, locked: true })
+      await expect
+        .poll(() => pageBlocked(page))
+        .toEqual({ inert: true, locked: true })
     })
 
     test("modal={false} keeps the page usable", async ({ page, open }) => {
@@ -814,5 +913,35 @@ test.describe("menu drill-in", () => {
     await page.getByRole("menuitem", { name: "Share" }).click()
     await page.getByRole("menuitem", { name: "Email" }).click()
     await expect(menuNamed(page, "File")).toBeHidden()
+  })
+})
+
+test.describe("a select sheet in a dialog rendered into a container", () => {
+  test.beforeEach(({ framework }) => {
+    test.skip(
+      !hasFixture("dialog-nested-sheet", framework),
+      `No dialog-nested-sheet fixture for ${framework}.`
+    )
+  })
+
+  test("a tap on the dialog beside the select's sheet closes only the select", async ({
+    browser,
+    baseURL,
+    framework,
+  }) => {
+    const { context, page } = await phone(browser, baseURL)
+    await page.goto(`/?fixture=dialog-nested-sheet&framework=${framework}`)
+    await page.locator("body[data-mounted]").waitFor({ state: "attached" })
+    await page.getByRole("button", { name: "Open filters" }).tap()
+    const dialog = page.getByRole("dialog", { name: "Filters" })
+    await waitForStill(dialog)
+    await page.getByRole("combobox", { name: "Date range" }).tap()
+    const list = page.getByRole("listbox")
+    await waitForStill(list)
+    const box = (await dialog.boundingBox())!
+    await page.touchscreen.tap(box.x + 20, box.y + 10)
+    await expect(list).toBeHidden()
+    await expect(dialog).toBeVisible()
+    await context.close()
   })
 })
