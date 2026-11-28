@@ -201,8 +201,9 @@ const minimalPages = {
     ],
   },
 }
-// Octane 0.20.0's compiler drops `/* @__PURE__ */`, so its select and combobox
-// keep their `notLabel` icon parts on every page. Checked once it keeps them.
+// Octane's compiler drops `/* @__PURE__ */`, still in 0.27.0, so its select
+// and combobox keep their `notLabel` icon parts on every page. Checked once it
+// keeps them.
 const minimalChecked = ["react", "vue", "svelte", "solid"]
 
 // Core modules an entry must never bundle, by entry. A switch has no indicator

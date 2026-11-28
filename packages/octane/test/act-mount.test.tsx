@@ -1,6 +1,6 @@
 /** @jsxImportSource octane */
 import * as React from "octane"
-import { act, createRoot, setIsOctaneActEnvironment, type Root } from "octane"
+import { act, createRoot, type Root } from "octane"
 import { afterEach, expect, test, vi } from "vitest"
 import {
   Combobox,
@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "../src/select"
 
-setIsOctaneActEnvironment(true)
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 let root: Root | undefined
 let container: HTMLElement
