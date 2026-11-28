@@ -116,23 +116,22 @@ const Menu = descriptorChildren(function Menu({
   useControllerEntry(options.controller, menu)
   // A data menu renders its content, unless the app placed a MenuContent: in
   // the markup, or inside a component of its own.
-  const found = hasChild(children, MenuContent)
+  const found = !!items && hasChild(children, MenuContent)
   const [placed, place] = usePlacedContent(!!items && !found)
   const own = placed || found
+  const body = <Placed value={place}>{children}</Placed>
   return (
     <HandleScope handle={menu}>
       <ContainerContext value={container}>
         {/* A menu inside this one's content is no item of the menubar. */}
-        <MenubarContext value={null}>
-          <Placed value={place}>{children}</Placed>
-        </MenubarContext>
-        <Placed value={null}>
-          {items && !own && (
+        {menubar ? <MenubarContext value={null}>{body}</MenubarContext> : body}
+        {items && !own && (
+          <Placed value={null}>
             <MenuContent>
               <MenuItems items={items} />
             </MenuContent>
-          )}
-        </Placed>
+          </Placed>
+        )}
       </ContainerContext>
     </HandleScope>
   )
