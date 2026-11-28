@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright"
 import type { Page } from "@playwright/test"
-import { expect, lastAction, test } from "../fixtures"
+import { expect, lastAction, reactApi, test } from "../fixtures"
 
 // A searchable select: a search field inside the list filters it, as the
 // APG's select-only combobox does with a search box. The trigger stays the
@@ -69,8 +69,8 @@ test.describe("searchable select", { tag: "@enhancement" }, () => {
     framework,
   }) => {
     test.skip(
-      framework !== "react" && framework !== "react-ssr",
-      "flushSync is React's, and the data fixture's list isn't the app's."
+      !reactApi(framework) || framework.endsWith("-data"),
+      "flushSync is React's and Octane's, and the data fixture's list isn't the app's."
     )
     await open("select", { search: "", flushed: "" })
     await openSearch(page)

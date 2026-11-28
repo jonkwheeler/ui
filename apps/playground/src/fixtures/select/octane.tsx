@@ -21,7 +21,7 @@ import {
 } from "@ui-sdk/octane/select"
 import { Field, FieldLabel } from "@ui-sdk/octane/field"
 import * as React from "octane"
-import { createRoot } from "octane"
+import { createRoot, flushSync } from "octane"
 import { onItemsChange } from "tests/fixtures/items.ts"
 import {
   changedItems,
@@ -116,6 +116,9 @@ function StyledContent() {
 
 function Fixture({ data = false }: { data?: boolean }) {
   const wrapped = new URLSearchParams(location.search).has("wrapped")
+  // ?flushed filters the list itself, in a search field's onInput that renders at once.
+  const flushed = new URLSearchParams(location.search).has("flushed")
+  const [query, setQuery] = React.useState("")
   const {
     fieldset,
     field,
@@ -153,6 +156,11 @@ function Fixture({ data = false }: { data?: boolean }) {
           },
         ]
       : list
+  const shown = flushed
+    ? list.filter((item) =>
+        item.label.toLowerCase().includes(query.toLowerCase())
+      )
+    : list
   return (
     <div className="fixture">
       <button>Before</button>
@@ -181,6 +189,7 @@ function Fixture({ data = false }: { data?: boolean }) {
             controller={controller}
             container={container}
             items={data || long || recent || wrapped ? items : undefined}
+            {...(flushed && { filter: false })}
             emptyItems={recent ? f.recent : undefined}
             onValueChange={(value, details) => {
               if (cancel) {
@@ -208,7 +217,21 @@ function Fixture({ data = false }: { data?: boolean }) {
                 className="popup list-popup"
                 alignItemWithTrigger={align}
               >
-                <SelectInput className="input" aria-label={f.search} />
+                <SelectInput
+                  className="input"
+                  aria-label={f.search}
+                  render={
+                    flushed ? (
+                      <input
+                        value={query}
+                        onInput={(event) => {
+                          const next = event.currentTarget.value
+                          flushSync(() => setQuery(next))
+                        }}
+                      />
+                    ) : undefined
+                  }
+                />
                 <SelectEmpty className="empty">{f.empty}</SelectEmpty>
                 <SelectList>
                   {(state) => (
@@ -221,7 +244,11 @@ function Fixture({ data = false }: { data?: boolean }) {
                       {data || long || recent ? (
                         <DataItems items={state.items as ListData} />
                       ) : (
-                        renderItems({ list, grouped, selectAll })
+                        renderItems({
+                          list: shown,
+                          grouped,
+                          selectAll,
+                        })
                       )}
                     </>
                   )}

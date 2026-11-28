@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `0718f402` (2026-11-20, the whole branch against `b4dbe882`: every component, the server-render pipeline and the fork-only CI).
 
-Mirrors `packages/react` at `b4dbe882`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `f1f87a34`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits before `b4dbe882` that needed nothing in Octane, from the replay that brought the port up from `@ui-sdk/react@0.1.0-beta.1`:
 
@@ -38,6 +38,9 @@ Upstream commits before `b4dbe882` that needed nothing in Octane, from the repla
 - **`requireDirective` in the shared playground.** Octane's Vite plugin has no include option, and without it would compile every `.tsx`, React's and Solid's fixtures included.
 
 - **`octane-portal` leaves out `menu.spec`'s shadow-root click test.** With the trigger moved into a shadow root and the content portaled to `#portal-root` outside it, the content's `aria-labelledby` can't reach the trigger, so the menu has no name and `getByRole("menu", { name: "File" })` finds nothing. The menu does open and stay open. Vue's portaled menu is unnamed the same way; no upstream project runs the pair, since React skips the test and only React has a portal project.
+
+- **Octane runs passive effects after paint, even for a discrete event or `flushSync`** (Octane's `docs/differences-from-react.md`, scheduler). A React regression test for a `flushSync` timing bug may pass on Octane without its fix: `select-search-flush-sync` (#935) guards the behaviour on Octane but wouldn't catch the bug returning.
+- **Upstream commits that touch only core or other frameworks need no entry here.** Only commits that touch `packages/react` or a React fixture get ported, and the mirrors line moves to each.
 
 ## Unit tests dropped from React's suite
 
