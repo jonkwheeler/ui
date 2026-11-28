@@ -430,8 +430,8 @@ function labelOf(parts: Bound[], entry?: Entry) {
     return name
   }
   // Then its field's name, like a date picker's input labelled "Due date",
-  // before a heading that changes with what it shows, like "November 2026",
-  // and a step button before it. Not a search field in its popup, which comes and goes.
+  // before a heading that changes and a step button. Not a search field in its
+  // popup, which comes and goes, but one a sheet moved there with no trigger.
   const input =
     parts.find(
       (part) =>
@@ -439,7 +439,12 @@ function labelOf(parts: Bound[], entry?: Entry) {
         (part.slot === "control" && part.el.matches("input, textarea"))
     )?.el ?? fieldInput(entry)
   const popup = parts.find((part) => part.slot === "content")?.el
-  const field = input && !popup?.contains(input) && nameOf(input)
+  const header = parts.find((part) => part.slot === "header")?.el
+  const trigger = parts.some((part) => part.slot === "trigger")
+  const field =
+    input &&
+    (!popup?.contains(input) || (!trigger && header?.contains(input))) &&
+    nameOf(input)
   if (field) {
     return field
   }

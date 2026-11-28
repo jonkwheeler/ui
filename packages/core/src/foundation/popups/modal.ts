@@ -204,6 +204,9 @@ function touchOwner(start: {
 const guardRule =
   "@layer ui-sdk { [data-scroll-guard], [data-scroll-guard] * { overscroll-behavior: contain } }"
 
+// How far, in CSS pixels, a finger can move and still tap.
+const tapSlop = 8
+
 // iOS ignores `overflow: hidden` while its toolbar is collapsed, and scrolls
 // the page behind a modal. Overscroll inside the modal is contained, and a
 // drag that would move the page is stopped. Never `position: fixed` on the
@@ -218,11 +221,18 @@ function guardTouch(modal: HTMLElement) {
   }
 
   let owner: ReturnType<typeof touchOwner> = "browser"
+  let start = { x: 0, y: 0 }
+  let stopped = false
+  let tap = true
   const offStart = on(
     doc,
     "touchstart",
     (event) => {
       const target = event.target instanceof Element ? event.target : null
+      const touch = event.touches[0]
+      start = { x: touch?.clientX ?? 0, y: touch?.clientY ?? 0 }
+      stopped = false
+      tap = true
       owner = touchOwner({
         fingers: event.touches.length,
         zoomed: (view.visualViewport?.scale ?? 1) !== 1,
@@ -237,8 +247,51 @@ function guardTouch(modal: HTMLElement) {
     doc,
     "touchmove",
     (event) => {
+      const touch = event.touches[0]
+      if (
+        !touch ||
+        Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > tapSlop
+      ) {
+        tap = false
+      }
       if (owner === "page" && event.cancelable) {
         event.preventDefault()
+        stopped = true
+      }
+    },
+    { passive: false }
+  )
+  // Safari drops the click of a tap whose move was stopped, so a finger that
+  // wobbles on a button gets its click here, and Safari's own is held back.
+  // Its first move has to be stopped, since that decides whether the page pans.
+  const offEnd = on(
+    doc,
+    "touchend",
+    (event) => {
+      const target = event.target
+      if (
+        event.defaultPrevented ||
+        !stopped ||
+        !tap ||
+        !event.cancelable ||
+        !(target instanceof view.Element)
+      ) {
+        return
+      }
+      event.preventDefault()
+      target
+        .closest<HTMLElement>("input, textarea, select, [contenteditable]")
+        ?.focus()
+      if (target instanceof view.HTMLElement) {
+        target.click()
+      } else {
+        target.dispatchEvent(
+          new view.MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+          })
+        )
       }
     },
     { passive: false }
@@ -246,6 +299,7 @@ function guardTouch(modal: HTMLElement) {
   return () => {
     offStart()
     offMove()
+    offEnd()
     if (marked) {
       modal.removeAttribute("data-scroll-guard")
     }
