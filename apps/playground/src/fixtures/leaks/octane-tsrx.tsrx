@@ -124,18 +124,15 @@ function SelectLeak() @{
       <SelectValue />
     </SelectTrigger>
     <SelectContent className="popup list-popup">
-      {/* A select labels its value from the items it finds among its
-      children, and it can't see inside an @for block. */}
-      {items.map((item) => (
+      @for (const item of items; key item.value) {
         <SelectItem
-          key={item.value}
           className="item"
           value={item.value}
           label={item.label}
         >
           {item.label as string}
         </SelectItem>
-      ))}
+      }
     </SelectContent>
   </Select>
 }

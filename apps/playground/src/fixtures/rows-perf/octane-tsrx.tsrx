@@ -66,11 +66,8 @@ function Row({ label }: { label: string }) @{
         />
       </SelectTrigger>
       <SelectContent className="popup list-popup">
-        {/* A select labels its value from the items it finds among its
-        children, and it can't see inside an @for block. */}
-        {options.map((option) => (
+        @for (const option of options; key option.value) {
           <SelectItem
-            key={option.value}
             className="item"
             value={option.value}
             label={option.label}
@@ -81,7 +78,7 @@ function Row({ label }: { label: string }) @{
           >
             {option.label as string}
           </SelectItem>
-        ))}
+        }
       </SelectContent>
     </Select>
     <Tooltip>

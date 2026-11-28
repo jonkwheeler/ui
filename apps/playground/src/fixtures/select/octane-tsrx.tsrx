@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
   type ListData,
-  type SelectProps,
 } from "@ui-sdk/octane/select"
 import { createRoot, useEffect, useState, type OctaneNode } from "octane"
 import { onItemsChange } from "tests/fixtures/items.ts"
@@ -214,27 +213,6 @@ function Fixture({ data = false }: { data?: boolean }) @{
         ]
       : list
 
-  // Typed here and cast at the spread, since Octane can't read
-  // <Select<string, boolean>>: with two JSX type arguments, no part in this
-  // file would see its children.
-  const props: SelectProps<string, boolean> = {
-    ...options,
-    name: f.name,
-    placeholder: f.placeholder,
-    controller,
-    container,
-    items: fromData || wrapped ? items : undefined,
-    emptyItems: recent ? f.recent : undefined,
-    onValueChange: (value, details) => {
-      if (cancel) {
-        return details.cancel()
-      }
-      setAction(
-        `value:${Array.isArray(value) ? value.join(",") : String(value)}`
-      )
-    },
-  }
-
   <div class="fixture">
     <button>Before</button>
     <form
@@ -255,7 +233,23 @@ function Fixture({ data = false }: { data?: boolean }) @{
             </SelectTrigger>
           </Field>
         }
-        <Select {...(props as SelectProps)}>
+        <Select<string, boolean>
+          {...options}
+          name={f.name}
+          placeholder={f.placeholder}
+          controller={controller}
+          container={container}
+          items={fromData || wrapped ? items : undefined}
+          emptyItems={recent ? f.recent : undefined}
+          onValueChange={(value, details) => {
+            if (cancel) {
+              return details.cancel()
+            }
+            setAction(
+              `value:${Array.isArray(value) ? value.join(",") : String(value)}`
+            )
+          }}
+        >
           @if (!field) {
             <>
               <SelectLabel className="label">

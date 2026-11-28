@@ -174,10 +174,9 @@ function Fixture({ data = false }: { data?: boolean }) @{
           <AutocompleteInput className="input" />
           <AutocompleteTrigger aria-label={f.trigger}>▾</AutocompleteTrigger>
           <AutocompleteClear>{f.clear as string}</AutocompleteClear>
-          {/* The autocomplete renders a content of its own while it sees none
-          among its children, and it can't see inside an @if block. */}
-          {late && <AutocompleteContent className="popup list-popup" />}
-          @if (!late) {
+          @if (late) {
+            <AutocompleteContent className="popup list-popup" />
+          } @else {
             <AutocompleteContent className="popup list-popup">
               @if (!nostatus) {
                 <AutocompleteStatus className="status">

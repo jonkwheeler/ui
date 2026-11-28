@@ -23,7 +23,6 @@ import {
   ComboboxTrigger,
   ComboboxValue,
   type ListData,
-  type ComboboxProps,
 } from "@ui-sdk/octane/combobox"
 import { createRoot, useEffect, useState, type OctaneNode } from "octane"
 import {
@@ -241,32 +240,6 @@ function Fixture({ data = false }: { data?: boolean }) @{
   const labels = new Map(
     [...f.items, ...list, ...created].map((item) => [item.value, item.label])
   )
-  // Typed here and cast at the spread, since Octane can't read
-  // <Combobox<string, boolean>>: with two JSX type arguments, no part in this
-  // file would see its children.
-  const props: ComboboxProps<string, boolean> = {
-    ...options,
-    name: f.name,
-    container,
-    items: late ? (arrived ? items : undefined) : fromData ? items : undefined,
-    emptyItems: recent ? f.recent : undefined,
-    filter: async || pages ? false : undefined,
-    status: async || pages ? remote.status : undefined,
-    onLoadMore: pages ? remote.loadMore : undefined,
-    itemToLabel: labelsFromItems
-      ? undefined
-      : (value) => labels.get(value) ?? value,
-    onValueChange: (value, details) => {
-      if (cancelsValue(value, cancel)) {
-        return details.cancel()
-      }
-      setAction(
-        `value:${Array.isArray(value) ? value.join(",") : String(value)}`
-      )
-    },
-    onQueryChange: (query) => (async || pages) && remote.setQuery(query),
-  }
-
   <div class="fixture">
     <button>Before</button>
     <form
@@ -278,7 +251,30 @@ function Fixture({ data = false }: { data?: boolean }) @{
       }}
     >
       <Wrap fieldset={fieldset}>
-        <Combobox {...(props as ComboboxProps)}>
+        <Combobox<string, boolean>
+          {...options}
+          name={f.name}
+          container={container}
+          items={
+            late ? (arrived ? items : undefined) : fromData ? items : undefined
+          }
+          emptyItems={recent ? f.recent : undefined}
+          filter={async || pages ? false : undefined}
+          status={async || pages ? remote.status : undefined}
+          onLoadMore={pages ? remote.loadMore : undefined}
+          itemToLabel={
+            labelsFromItems ? undefined : (value) => labels.get(value) ?? value
+          }
+          onValueChange={(value, details) => {
+            if (cancelsValue(value, cancel)) {
+              return details.cancel()
+            }
+            setAction(
+              `value:${Array.isArray(value) ? value.join(",") : String(value)}`
+            )
+          }}
+          onQueryChange={(query) => (async || pages) && remote.setQuery(query)}
+        >
           <ComboboxLabel className="label">{f.label as string}</ComboboxLabel>
           @if (options.multiple) {
             <ComboboxChips
@@ -300,10 +296,9 @@ function Fixture({ data = false }: { data?: boolean }) @{
           }
           <ComboboxTrigger aria-label={f.trigger}>▾</ComboboxTrigger>
           <ComboboxClear>{f.clear as string}</ComboboxClear>
-          {/* The combobox renders a content of its own while it sees none
-          among its children, and it can't see inside an @if block. */}
-          {late && <ComboboxContent className="popup list-popup" />}
-          @if (!late) {
+          @if (late) {
+            <ComboboxContent className="popup list-popup" />
+          } @else {
             <ComboboxContent
               className={
                 pages ? "popup list-popup list-short" : "popup list-popup"

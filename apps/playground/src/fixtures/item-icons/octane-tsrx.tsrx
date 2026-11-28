@@ -140,18 +140,16 @@ function Fixture() @{
         <SelectValue className="value" />
       </SelectTrigger>
       <SelectContent className="popup list-popup">
-        {/* A select labels its value from the items it finds among its
-        children, and it can't see inside an @for block. */}
-        {f.select.items.map((item) => (
-          <SelectItem key={item.value} className="item" value={item.value}>
-            {(item.icon || item.emoji) && (
+        @for (const item of f.select.items; key item.value) {
+          <SelectItem className="item" value={item.value}>
+            @if (item.icon || item.emoji) {
               <SelectItemIcon>
                 <Glyph entry={item} />
               </SelectItemIcon>
-            )}
+            }
             {item.label as string}
           </SelectItem>
-        ))}
+        }
       </SelectContent>
     </Select>
 
@@ -166,18 +164,19 @@ function Fixture() @{
       <ComboboxInput className="input" />
       <ComboboxContent className="popup list-popup">
         <ComboboxList>
-          {/* A combobox labels its value from the items it finds among its
-          children, and it can't see inside an @for block. */}
-          {f.combobox.items.map((item) => (
-            <ComboboxItem key={item.value} className="item" value={item.value}>
-              {(item.icon || item.emoji) && (
+          @for (const item of f.combobox.items; key item.value) {
+            <ComboboxItem className="item" value={item.value}>
+              @if (
+                item.icon ||
+                item.emoji
+              ) {
                 <ComboboxItemIcon>
                   <Glyph entry={item} />
                 </ComboboxItemIcon>
-              )}
+              }
               <ComboboxItemText>{item.label as string}</ComboboxItemText>
             </ComboboxItem>
-          ))}
+          }
         </ComboboxList>
       </ComboboxContent>
     </Combobox>

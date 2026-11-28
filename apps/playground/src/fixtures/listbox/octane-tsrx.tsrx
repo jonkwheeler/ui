@@ -7,7 +7,6 @@ import {
   ListboxItemIcon,
   ListboxItemIndicator,
   ListboxSeparator,
-  type ListboxProps,
 } from "@ui-sdk/octane/listbox"
 import { createRoot, useEffect, useState, type OctaneNode } from "octane"
 import { onItemsChange } from "tests/fixtures/items.ts"
@@ -95,33 +94,6 @@ function Fixture({ data = false }: { data?: boolean }) @{
   const [value, setValue] = useState<string | string[] | null>(
     defaultValue ?? (options.multiple ? [] : null)
   )
-  // Typed here and cast at the spread, since Octane can't read
-  // <Listbox<string, boolean>>: two JSX type arguments turn off
-  // descriptorChildren for the whole file.
-  const props: ListboxProps<string, boolean> = {
-    ...options,
-    ...(controlled ? { value } : { defaultValue }),
-    className: "listbox",
-    "aria-label": f.label,
-    name: f.name,
-    controller,
-    items: data
-      ? long
-        ? longToppings()
-        : grouped
-          ? listboxData(true)
-          : list
-      : undefined,
-    onValueChange: (next, details) => {
-      setReason(details.reason)
-      if (cancel) {
-        return details.cancel()
-      }
-      setValue(next)
-      setAction(listboxAction(next))
-    },
-  }
-
   <div class="fixture">
     <button>Before</button>
     <form
@@ -133,7 +105,31 @@ function Fixture({ data = false }: { data?: boolean }) @{
       }}
     >
       <Wrap fieldset={fieldset}>
-        <Listbox {...(props as ListboxProps)}>
+        <Listbox<string, boolean>
+          {...options}
+          {...(controlled ? { value } : { defaultValue })}
+          className="listbox"
+          aria-label={f.label}
+          name={f.name}
+          controller={controller}
+          items={
+            data
+              ? long
+                ? longToppings()
+                : grouped
+                  ? listboxData(true)
+                  : list
+              : undefined
+          }
+          onValueChange={(next, details) => {
+            setReason(details.reason)
+            if (cancel) {
+              return details.cancel()
+            }
+            setValue(next)
+            setAction(listboxAction(next))
+          }}
+        >
           <Items grouped={grouped} long={long} list={list} />
         </Listbox>
       </Wrap>

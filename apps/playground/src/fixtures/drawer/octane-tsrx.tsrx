@@ -46,9 +46,9 @@ function Fixture() @{
       onDismissAttempt={(details) => recordDrawer(`attempt:${details.reason}`)}
     >
       <DrawerTrigger>{drawerFixture.trigger as string}</DrawerTrigger>
-      {/* The drawer dims a backdrop that binds before its content, and an @if
-      block binds after the content beside it. */}
-      {parts.backdrop && <DrawerBackdrop className="drawer-backdrop" />}
+      @if (parts.backdrop) {
+        <DrawerBackdrop className="drawer-backdrop" />
+      }
       <DrawerContent className="drawer">
         <DrawerHandle className="handle" aria-label={drawerFixture.handle} />
         <DrawerTitle className="title">
@@ -102,9 +102,9 @@ function Fixture() @{
             <DrawerTrigger>
               {drawerFixture.nested.trigger as string}
             </DrawerTrigger>
-            {parts.backdrop && (
+            @if (parts.backdrop) {
               <DrawerBackdrop className="drawer-backdrop" />
-            )}
+            }
             <DrawerContent className="drawer">
               <DrawerTitle className="title">
                 {drawerFixture.nested.title as string}

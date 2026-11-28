@@ -51,13 +51,11 @@ function FileItem({
     >
       {item.label as string}
     </TreeItemLabel>
-    {/* A TreeItem is a branch when it finds a TreeGroup among its children,
-    and it can't see inside an @if block. */}
-    {item.children && (
+    @if (item.children) {
       <TreeGroup className="tree-group">
         <Items items={item.children} checkable={checkable} />
       </TreeGroup>
-    )}
+    }
   </TreeItem>
 }
 

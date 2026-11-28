@@ -26,12 +26,9 @@ function Fixture() @{
         <SelectValue />
       </SelectTrigger>
       <SelectContent className="popup list-popup">
-        {/* The select finds the selected option's label among its children,
-        and it can't see inside a @for block. */}
-        {items.map((item, index) =>
-          index % 2 ? (
+        @for (const item of items; index position; key item.value) {
+          @if (position % 2) {
             <SelectItem
-              key={item.value}
               className="item"
               value={item.value}
               label={item.label}
@@ -47,9 +44,8 @@ function Fixture() @{
             >
               {item.label as string}
             </SelectItem>
-          ) : (
+          } @else {
             <SelectItem
-              key={item.value}
               className="item"
               value={item.value}
               label={item.label}
@@ -60,8 +56,8 @@ function Fixture() @{
             >
               {item.label as string}
             </SelectItem>
-          )
-        )}
+          }
+        }
       </SelectContent>
     </Select>
     <button>After</button>
