@@ -6,6 +6,7 @@ import { createAgent } from "../src/agent"
 import { defineComboboxElements } from "../src/combobox"
 import { defineDialogElements } from "../src/dialog"
 import { defineFieldElements } from "../src/field"
+import { defineInputElements } from "../src/input"
 import { definePopoverElements } from "../src/popover"
 import { defineSliderElements } from "../src/slider"
 import { defineTabsElements } from "../src/tabs"
@@ -23,6 +24,7 @@ beforeAll(() => {
   defineDialogElements()
   defineFieldElements()
   defineSliderElements()
+  defineInputElements()
   definePopoverElements()
 })
 
@@ -134,6 +136,45 @@ test("a slider's name leaves out what its field's label keeps from agents", asyn
       steps: [{ ref: "bonus", action: "setValue", args: [10] }],
     }),
   ]
+  expect(JSON.stringify(read)).not.toMatch(/canary/i)
+})
+
+test("a field without a label is named by its control, like React's", async () => {
+  const agent = createAgent()
+  document.body.innerHTML = `
+    <ui-field>
+      <ui-input><input aria-label="Work email" required /></ui-input>
+      <ui-field-error match="valueMissing">Enter a work email.</ui-field-error>
+    </ui-field>`
+  await wait()
+  document.querySelector("input")!.checkValidity()
+  await wait()
+  expect(agent.snapshot()).toContainEqual(
+    expect.objectContaining({ component: "field", label: "Work email" })
+  )
+})
+
+test("a field leaves out the name of a control kept from agents", async () => {
+  const agent = createAgent()
+  const heard: unknown[] = []
+  const unsubscribe = agent.subscribe((change) => heard.push(change))
+  document.body.innerHTML = `
+    <ui-field>
+      <div data-agent-hidden>
+        <ui-input><input aria-label="Canary token" required /></ui-input>
+      </div>
+      <ui-field-error match="valueMissing">Enter a value.</ui-field-error>
+    </ui-field>`
+  await wait()
+  document.querySelector("input")!.checkValidity()
+  await wait()
+  const read = [
+    agent.snapshot(),
+    await agent.query({ kind: "field" }),
+    await agent.query({ text: "canary" }),
+    heard,
+  ]
+  unsubscribe()
   expect(JSON.stringify(read)).not.toMatch(/canary/i)
 })
 
