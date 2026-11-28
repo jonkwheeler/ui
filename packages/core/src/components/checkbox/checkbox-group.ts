@@ -258,7 +258,10 @@ function checkboxGroupApiBody(
     // Checks or unchecks every enabled checkbox. Disabled ones keep their state.
     setAll(
       checked: boolean,
-      details: { reason: CheckboxGroupValueChangeReason; event?: Event }
+      {
+        reason = "imperative",
+        event,
+      }: { reason?: CheckboxGroupValueChangeReason; event?: Event } = {}
     ) {
       if (disabled()) {
         return false
@@ -268,7 +271,7 @@ function checkboxGroupApiBody(
       const next = checked
         ? [...new Set([...current, ...all().filter((value) => !locked(value))])]
         : current.filter((value) => locked(value))
-      return setValue(next, details)
+      return setValue(next, { reason, event })
     },
     // The ids of the checkboxes in the group, for a parent's aria-controls.
     childIds: () => store.get().ids,
@@ -408,8 +411,15 @@ const checkboxGroupPrimitive = /* @__PURE__ */ definePrimitive({
         "data-readonly": state.readOnly ? "" : undefined,
         "data-required": state.required ? "" : undefined,
       }),
-      bind: (el, { api, store }) =>
-        bindInternals(el, {
+      bind: (el, { api, store }) => {
+        // A label pointing at the group moves focus into it.
+        const onClick = (event: MouseEvent) => {
+          if (event.target === el) {
+            api.focus()
+          }
+        }
+        el.addEventListener("click", onClick)
+        const unbind = bindInternals(el, {
           value: () => submitted(store.get()),
           name: () => store.get().name,
           state: () => store.get().value.join("\n"),
@@ -422,7 +432,12 @@ const checkboxGroupPrimitive = /* @__PURE__ */ definePrimitive({
           reset: api.internal.reset,
           disabled: api.internal.setFormDisabled,
           subscribe: store.subscribe,
-        }),
+        })
+        return () => {
+          unbind()
+          el.removeEventListener("click", onClick)
+        }
+      },
     }),
 
     // React and Vue: an unnamed native checkbox that carries the group's

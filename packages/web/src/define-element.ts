@@ -1062,6 +1062,9 @@ function defineRootElement<P extends Primitive>(
         ...semantics,
       ]
       #view?: object
+      // Kept for the element, so one put back on the page keeps the id its
+      // controls already point at, like a label whose `target` holds the id.
+      #ownId?: string
       get #instance() {
         return instances.get(this) as ReturnType<P> | undefined
       }
@@ -1278,7 +1281,8 @@ function defineRootElement<P extends Primitive>(
                 ...optionsOf(this, this.#properties, this.#rendered),
                 ...last,
                 id:
-                  this.id || `ui-sdk-${tagName.replace(/^ui-/, "")}-${++count}`,
+                  this.id ||
+                  (this.#ownId ??= `ui-sdk-${tagName.replace(/^ui-/, "")}-${++count}`),
               },
               config.silent,
               config.actions,
@@ -1365,8 +1369,13 @@ function defineRootElement<P extends Primitive>(
       #childObserver?: MutationObserver
       #selfPart?: Part
 
+      // An own slot on a wrapped element, like a Button's <button>, shares it
+      // with the parts around it, so it's found as the inner one.
       #registerSelf(el: HTMLElement) {
         this.#selfPart = { slot: config.self!, el, props: {} }
+        if (el !== this) {
+          slotParts.set(this, this.#selfPart)
+        }
         this.register(this.#selfPart)
       }
 
@@ -2251,7 +2260,15 @@ function partElement<P extends Primitive>(
     ),
     props: attributes,
     ...props,
-    properties: [...new Set([...props.properties, ...properties])],
+    // A popup content's `anchor` is a selector attribute, or an element or a
+    // point set as the property.
+    properties: [
+      ...new Set([
+        ...props.properties,
+        ...properties,
+        ...("anchor" in slotSchema ? ["anchor"] : []),
+      ]),
+    ],
   }
   return { kind: "part" as const, key, tagName: tag, config }
 }
