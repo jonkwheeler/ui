@@ -4,7 +4,7 @@ What's already decided for `@ui-sdk/octane`, so a review doesn't raise it again.
 
 Last reviewed: `0718f402` (2026-11-20, the whole branch against `b4dbe882`: every component, the server-render pipeline and the fork-only CI).
 
-Mirrors `packages/react` at `e452fd31`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
+Mirrors `packages/react` at `e1579323`. Each upstream commit after it that touches a file Octane has ported, or a ported component's React fixture, is ported too, and this line moves to it. Commits that need nothing are listed below.
 
 Upstream commits before `b4dbe882` that needed nothing in Octane, from the replay that brought the port up from `@ui-sdk/react@0.1.0-beta.1`:
 
@@ -30,6 +30,7 @@ Upstream commits before `b4dbe882` that needed nothing in Octane, from the repla
 - **No `Profiler` in fixtures.** Only React's spec reads the commit counter it fed.
 - **`IS_REACT_ACT_ENVIRONMENT` turns on the act warning, as in React's tests.** Octane reads React's global. `setIsOctaneActEnvironment` left the public `octane` entry in 0.22.0 for `octane/internal/client`, which isn't API, so `act-mount.test.tsx` sets the global as React's file does.
 - **`shimMissingExports` for the Octane server bundle only** (`apps/playground/ssr-plugin.ts`). Every `octane.tsx` fixture exports `mount`, which imports `createRoot`, and `octane/server` has no `createRoot` (still none in 0.27.0). The server never calls `mount`, so the shim's `undefined` is never read; splitting `mount` out of every fixture would diverge them from React's.
+- **`heldRef` lets go at once of an element that left the page.** Octane detaches a removed element's ref after the layout cleanups inside it, where React detaches it first (`knowledge.md`, part 1). With the microtask kept for every release, a closed trigger menu's empty part counted itself gone, and core's check a microtask later still read the content as bound, so with an empty part Control+Space didn't reopen a dismissed query that matches nothing (#1461): `trigger-menu.spec`'s test failed on `octane` and `octane-tsrx`, on the dev server and a built playground, with core's fix in. An element whose ref detaches while it's still in the page, as when the ref changes, keeps the microtask. React's `heldRef` has no such line. The root fix would be in Octane: detach a removed element's ref before the layout cleanups inside it, as React does, after which this line could go.
 - **Octane-only prop shapes in the merge path.** `mergeProps` merges a style written as text through `styleObject` and passes class values on as an array for Octane to compose; `mergeRefs` flattens ref arrays; `yieldToAuthor`'s check reads the DOM spelling too (`autocomplete`). React has none of these shapes, so these lines don't diff against React's. `test/octane-props.test.tsx` covers them.
 - **`Command`'s `typeof children !== "function"` checks stay.** A children block skips `hasChild`, but a placed `CommandList` still registers through `Placed` when it mounts, so no second list renders; a production probe matched React.
 - **`octane.spike.spec.ts` runs on every project.** Only Octane has the `tree-children` fixture, so the others skip it.

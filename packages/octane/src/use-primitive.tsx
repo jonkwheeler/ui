@@ -484,6 +484,7 @@ function heldRef(part: Part) {
   }
   const bindTo = ref(part, host)
   let releasing = false
+  let bound: HTMLElement | null = null
   held = (el) => {
     releasing = !el
     if (el) {
@@ -496,10 +497,19 @@ function heldRef(part: Part) {
         }
         commit(part, props)
       }
+      bound = el
       return bindTo(el)
+    }
+    // Octane detaches a removed element's ref after the parts inside it let go,
+    // where React detaches it first, so a part whose element left the page lets
+    // go now, before the microtasks they queued run.
+    if (!bound?.isConnected) {
+      bound = null
+      return bindTo(null)
     }
     queueMicrotask(() => {
       if (releasing) {
+        bound = null
         bindTo(null)
       }
     })
