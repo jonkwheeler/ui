@@ -117,8 +117,7 @@ function ProfilePage({ onLeave }: { onLeave: () => void }) @{
   </>
 }
 
-// Octane 0.20.0 needs a `props` parameter to compile <Activity> children.
-function Fixture(props: object) @{
+function Fixture() @{
   const [page, setPage] = useState<"profile" | "other">("profile")
 
   <div class="fixture">

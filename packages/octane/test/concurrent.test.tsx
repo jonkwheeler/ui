@@ -168,11 +168,9 @@ test("tabs Suspense hid and showed again keep their instance, and the agent stil
   expect(tab(view, "Account").getAttribute("aria-selected")).toBe("true")
 })
 
-// Octane 0.20.0 throws "props is not defined" for an <Activity> with a
-// component child unless the component's props are named `props`.
-function ActivityTabs(props: { mode: "visible" | "hidden" }) {
+function ActivityTabs({ mode }: { mode: "visible" | "hidden" }) {
   return (
-    <React.Activity mode={props.mode}>
+    <React.Activity mode={mode}>
       <Tabs defaultValue="account">
         <TabsList>
           <TabsTab value="account">Account</TabsTab>

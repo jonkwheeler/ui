@@ -76,13 +76,14 @@ function Counter() {
   )
 }
 
-// Octane 0.20.0 throws "props is not defined" for an <Activity> with an
-// expression child unless the component's props are named `props`.
-function Hideable(props: {
+function Hideable({
+  mode,
+  children,
+}: {
   mode: "visible" | "hidden"
   children: React.ReactNode
 }) {
-  return <React.Activity mode={props.mode}>{props.children}</React.Activity>
+  return <React.Activity mode={mode}>{children}</React.Activity>
 }
 
 test("<Activity> hid and showed again keeps state that has no default option", async () => {
