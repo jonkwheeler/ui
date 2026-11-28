@@ -357,12 +357,24 @@ function ownParts<Each extends Pick<Bound, "key" | "slot" | "props">>(
 }
 
 // A web field's control binds its own component's parts, not the field's,
-// so the field finds it.
+// so the field finds it. A trigger menu's editor isn't one of its parts either.
 function fieldInput(entry: Entry | undefined) {
-  const instance = entry?.component === "field" && entry.instance.deref()
-  const control = instance
-    ? (instance.api as { control?: () => HTMLElement | undefined }).control?.()
-    : undefined
+  const component = entry?.component
+  const api =
+    component === "field" || component === "trigger-menu"
+      ? (entry?.instance.deref()?.api as
+          | {
+              control?: () => HTMLElement | undefined
+              internal?: {
+                editor?: () => { element?: HTMLElement } | undefined
+              }
+            }
+          | undefined)
+      : undefined
+  const control =
+    component === "field"
+      ? api?.control?.()
+      : api?.internal?.editor?.()?.element
   return control?.matches("input, textarea") && !isOffLimits([control])
     ? control
     : undefined
