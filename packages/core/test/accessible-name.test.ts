@@ -142,3 +142,27 @@ test("a button only its label names has a name", () => {
   ).toBe("Save")
   expect(hasAccessibleName(document.getElementById("target")!)).toBe(true)
 })
+
+test("children that aren't plain inline read as separate words, inline ones run together", () => {
+  expect(
+    nameIn(
+      `<button id="target" style="display: flex"><span style="display: block">Read</span><span style="display: block">Swedish orders</span></button>`
+    )
+  ).toBe("Read Swedish orders")
+  expect(
+    nameIn(
+      `<button id="target"><span style="display: inline-block">Read</span><span style="display: inline-block">Swedish</span></button>`
+    )
+  ).toBe("Read Swedish")
+  expect(nameIn(`<button id="target"><b>Hel</b>lo</button>`)).toBe("Hello")
+  expect(
+    nameIn(
+      `<button id="target">Hel<span style="display: inline-block"></span>lo</button>`
+    )
+  ).toBe("Hello")
+  expect(
+    nameIn(
+      `<button id="target">Hel<span style="display: block"></span>lo</button>`
+    )
+  ).toBe("Hel lo")
+})
