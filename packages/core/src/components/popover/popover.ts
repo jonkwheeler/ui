@@ -1,3 +1,4 @@
+import { dev, warn } from "#dev"
 import {
   ariaKeyshortcuts,
   initialApple,
@@ -432,6 +433,21 @@ const popoverPrimitive = /* @__PURE__ */ definePrimitive({
       content: slot<ContentProps, PopoverContentState>({
         ...content,
         props: { ...content.props, inline: "boolean" },
+        bind(el, part) {
+          // Only a form inside nests. Other fields in a popover belong to the
+          // form around it, like any field in place.
+          if (
+            dev &&
+            el.querySelector("form") &&
+            el.parentElement?.closest("form")
+          ) {
+            warn(
+              "The content renders inside a form, which nests forms. Pass `container` to render it elsewhere.",
+              { component: "popover", id: part.id }
+            )
+          }
+          return content.bind!(el, part)
+        },
         state: (state) => ({
           open: state.open,
           modal: state.modal as PopoverContentState["modal"],

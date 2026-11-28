@@ -21,7 +21,7 @@ import { commandShortcuts, findCommand, pageItems } from "./command-data"
 import { initialApple } from "../../foundation/platform/platform"
 import { noListing } from "../../foundation/lists/listbox-listing"
 import { announcePending, isPromise } from "../../foundation/kernel/action"
-import { selectEvent } from "../../foundation/kernel/events"
+import { isComposing, selectEvent } from "../../foundation/kernel/events"
 import type { PrimitiveContext } from "../../foundation/kernel/primitive-types"
 import {
   adoptPlatform,
@@ -276,6 +276,10 @@ function commandApiBody(
     switch (event.key) {
       case "Enter": {
         if (value === null) {
+          // The search isn't form data, so Enter never submits a form around it.
+          if (!isComposing(event)) {
+            event.preventDefault()
+          }
           return
         }
         const el = core.listbox.element(value)

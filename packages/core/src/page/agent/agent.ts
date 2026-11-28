@@ -363,10 +363,10 @@ const visible = { visibilityProperty: true, checkVisibilityCSS: true }
 
 // Whether an element shows, as far as the browser can tell, and isn't hidden
 // from screen readers, like a decorative avatar. Without `checkVisibility`, a
-// `hidden` ancestor hides it.
+// `hidden` ancestor hides it. A popup animating out is already closed.
 const isShown = (el: HTMLElement) =>
   (el.checkVisibility?.(visible) ?? !el.closest("[hidden]")) &&
-  !el.closest('[aria-hidden="true"]')
+  !el.closest('[aria-hidden="true"], [data-ending-style]')
 
 // Inert content takes nothing from a person, like the page behind a modal
 // dialog or a carousel's slide out of view, so it takes nothing from an agent.

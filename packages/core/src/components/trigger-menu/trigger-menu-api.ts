@@ -403,14 +403,19 @@ function triggerMenuApiBody(
     return listbox.entries().length > 0
   }
 
-  // Opens or closes the list for the current level: it shows while items
-  // match, while they load, or while an empty part can say there are none.
+  // Counted when they bind, so an Empty that rebinds, or mounts as the last
+  // row unmounts, never reads as gone within the commit.
+  let empties = 0
+
+  // The list for the current level shows while items match, while they
+  // load, or while an empty part can say there are none.
+  const visible = () =>
+    !!levels.current() &&
+    !isFreeText() &&
+    (hasEntries() || loadingStatus() === "loading" || empties > 0)
+
   function settle(reason: TriggerMenuOpenChangeReason, event?: Event) {
-    const visible =
-      !!levels.current() &&
-      !isFreeText() &&
-      (hasEntries() || loadingStatus() === "loading" || store.get().hasEmpty)
-    if (visible) {
+    if (visible()) {
       show(reason, event)
     } else {
       hide(reason, event)
@@ -595,6 +600,10 @@ function triggerMenuApiBody(
     }
     lastMounts = mounts
     lastItems = items
+    // Rows can unmount after the input that filtered them, like React's children.
+    if (store.get().open && !visible()) {
+      return settle("input-change")
+    }
     settleHighlight()
   })
 
@@ -763,8 +772,20 @@ function triggerMenuApiBody(
         follow()
       },
       keyOf: toKey,
-      // An empty part is rendered, so no matches keeps the menu open.
-      markEmptyPart: () => store.set({ hasEmpty: true }),
+      // While an empty part is rendered, no matches keeps the menu open.
+      countEmptyPart(delta: 1 | -1) {
+        empties += delta
+        queueMicrotask(() => {
+          const hasEmpty = empties > 0
+          if (store.get().hasEmpty === hasEmpty) {
+            return
+          }
+          store.set({ hasEmpty })
+          if (!hasEmpty && store.get().open) {
+            settle("input-change")
+          }
+        })
+      },
       isEmpty: (state: TriggerMenuState) =>
         (options().status ?? state.loading) !== "loading" &&
         (!!state.items || state.settled) &&

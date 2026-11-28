@@ -35,6 +35,12 @@ function key(init: {
 const plain = (text: string) => text.replace(/[⁦⁩]/g, "")
 
 describe("matching shortcuts", () => {
+  test("a keydown with no key, like Chrome's autofill sends, matches nothing", () => {
+    const autofill = new Event("keydown") as KeyboardEvent
+    expect(matchesShortcut(autofill, "f6", true)).toBe(false)
+    expect(matchesShortcut(autofill, "mod+k", false)).toBe(false)
+  })
+
   test("letters match the typed key, case-insensitively", () => {
     expect(
       matchesShortcut(
@@ -206,6 +212,13 @@ describe("formatting shortcuts", () => {
     expect(ariaKeyshortcuts("option+esc", false)).toBe("Alt+Escape")
     expect(ariaKeyshortcuts("cmd+up", false)).toBe("Meta+ArrowUp")
     expect(ariaKeyshortcuts("shift+space", true)).toBe("Shift+Space")
+  })
+
+  test("a shortcut with no keys formats as nothing", () => {
+    for (const apple of [true, false]) {
+      expect(formatShortcut("", apple)).toBe("")
+      expect(ariaKeyshortcuts("", apple)).toBe("")
+    }
   })
 })
 

@@ -152,9 +152,9 @@ function ariaKeyshortcuts(shortcut: string, apple = isApple()) {
       if (keyNames[lower]) {
         return keyNames[lower]
       }
-      return key.length === 1
-        ? key.toUpperCase()
-        : key[0].toUpperCase() + key.slice(1)
+      return key.length > 1
+        ? key[0].toUpperCase() + key.slice(1)
+        : key.toUpperCase()
     })
     .join("+")
 }
@@ -197,7 +197,11 @@ const names: Record<string, string> = {
  * @stable
  */
 function formatShortcut(shortcut: string, apple = isApple()) {
-  const keys = ariaKeyshortcuts(shortcut, apple).split("+")
+  const aria = ariaKeyshortcuts(shortcut, apple)
+  if (!aria) {
+    return ""
+  }
+  const keys = aria.split("+")
   const text = apple
     ? keys.map((key) => appleGlyphs[key] ?? key).join("")
     : keys.map((key) => names[key] ?? key).join("+")
@@ -238,6 +242,10 @@ function matchesShortcut(
   shortcut: string,
   apple = isApple()
 ) {
+  // Chrome's autofill sends a keydown that isn't a KeyboardEvent, with no key.
+  if (typeof event.key !== "string") {
+    return false
+  }
   const cache = parsed[+apple]
   let keys = cache.get(shortcut)
   if (!keys) {

@@ -1349,6 +1349,24 @@ describe("agent", () => {
     expect(shown.get().checked).toBe(true)
   })
 
+  test("a component in a popup that's animating out, like a menu after a choice, isn't on the page", async () => {
+    const agent = createAgent()
+    const shown = mountCheckbox({ id: "notes-shown" }, "Release notes")
+    mountCheckbox({ id: "notes-leaving" }, "Release notes")
+    const leaving = document.body.appendChild(document.createElement("div"))
+    leaving.setAttribute("data-ending-style", "")
+    leaving.append(document.body.querySelectorAll("label")[1])
+    expect(
+      agent
+        .snapshot()
+        .filter((component) => component.label === "Release notes")
+    ).toHaveLength(1)
+    await agent.act({
+      steps: [{ ref: "Release notes", action: "setChecked", args: [true] }],
+    })
+    expect(shown.get().checked).toBe(true)
+  })
+
   test("a component inside aria-hidden isn't on the page", () => {
     const agent = createAgent()
     mountCheckbox({ id: "shown" }, "Shown")
