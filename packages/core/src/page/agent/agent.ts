@@ -2515,11 +2515,13 @@ function createAgent(
       if (settled.pending) {
         return { ref: entry.ref, result: `${action} is still running.` }
       }
-      // A private value is compared with nothing a step sends: whether a
-      // guess failed or passed would say what it holds.
+      // A private value is compared with nothing a step sends, since the outcome
+      // would say what it holds. One that unmounts in the step, like a to-do
+      // that moves to another list, can't be read again, so it isn't a refusal.
       const stays = () => {
         const state = instance.get() as Record<string, unknown>
         return (
+          entries.get(entry.ref) === entry &&
           !entry.secret &&
           !!setKey &&
           setKey in state &&

@@ -264,6 +264,29 @@ test.describe("manual activation", () => {
     await expect(tabNamed(page, "Account")).toBeFocused()
   })
 
+  test("Tab leaves the list from a focused tab before the selected one", async ({
+    page,
+    tab,
+  }) => {
+    await tabNamed(page, "Password").click()
+    await page.keyboard.press("ArrowLeft")
+    await expect(tabNamed(page, "Account")).toBeFocused()
+    await tab()
+    await expect(
+      page.getByRole("textbox", { name: "Current password" })
+    ).toBeFocused()
+  })
+
+  test("Shift+Tab leaves the list from a focused tab after the selected one", async ({
+    page,
+    tab,
+  }) => {
+    await page.keyboard.press("ArrowRight")
+    await expect(tabNamed(page, "Password")).toBeFocused()
+    await tab({ shift: true })
+    await expect(page.getByRole("button", { name: "Before" })).toBeFocused()
+  })
+
   test("arrow keys move focus without selecting", async ({ page }) => {
     await page.keyboard.press("ArrowRight")
     await expect(tabNamed(page, "Password")).toBeFocused()
