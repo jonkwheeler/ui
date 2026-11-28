@@ -2754,6 +2754,23 @@ function createAgent(
     }
   }
 
+  // What `act` returns for a call cancelled before its turn, with no values,
+  // since reading the page then would show what the running call has.
+  const cancelledAct = (input: unknown) => {
+    const invalid = malformed(input)
+    const [step] = invalid ? [] : (input as { steps: AgentStep[] }).steps
+    return {
+      ok: false,
+      error: invalid ?? {
+        step: 0,
+        message: `${step.action} on ${step.ref} was cancelled.`,
+      },
+      steps: [],
+      appeared: [],
+      values: {},
+    }
+  }
+
   // Components that match, then how many more there were, when there were.
   const capped = (found: AgentComponent[]) =>
     found.length > limit
@@ -2933,20 +2950,44 @@ function createAgent(
     return next
   }
 
+  // A call cancelled while it waits for its turn, like behind a confirm the
+  // person hasn't answered, settles at once and never runs.
   const askingToo = <T>(
     allow: Allow | undefined,
     signal: AbortSignal | undefined,
-    run: () => Promise<T>
+    run: () => Promise<T>,
+    cancelled?: () => T
   ) =>
-    inTurn(async () => {
-      callerAllow = allow
-      callerSignal = signal
-      try {
-        return await run()
-      } finally {
-        callerAllow = undefined
-        callerSignal = undefined
+    new Promise<T>((resolve, reject) => {
+      const stop = () => {
+        try {
+          resolve(cancelled!())
+        } catch (error) {
+          reject(error)
+        }
       }
+      if (cancelled && signal?.aborted) {
+        return stop()
+      }
+      if (cancelled) {
+        signal?.addEventListener("abort", stop, { once: true })
+      }
+      inTurn(async () => {
+        signal?.removeEventListener("abort", stop)
+        if (cancelled && signal?.aborted) {
+          return
+        }
+        callerAllow = allow
+        callerSignal = signal
+        try {
+          resolve(await run())
+        } catch (error) {
+          reject(error)
+        } finally {
+          callerAllow = undefined
+          callerSignal = undefined
+        }
+      })
     })
   const agent = {
     /**
@@ -2985,7 +3026,12 @@ function createAgent(
      * a step waiting on `allow` fails as cancelled and later steps don't run.
      */
     act: (input: { steps: AgentStep[] }, options?: { signal?: AbortSignal }) =>
-      askingToo(undefined, options?.signal, () => act(input)),
+      askingToo(
+        undefined,
+        options?.signal,
+        () => act(input),
+        () => cancelledAct(input)
+      ),
     /**
      * Finds components without listing the page. `text` matches a
      * component's label or row text by whole words, and a list's items, which
@@ -3026,7 +3072,13 @@ function createAgent(
     inTurn(() => act({ steps }, guard))
   )
   allowing.set(agent, {
-    act: (input, allow, signal) => askingToo(allow, signal, () => act(input)),
+    act: (input, allow, signal) =>
+      askingToo(
+        allow,
+        signal,
+        () => act(input),
+        () => cancelledAct(input)
+      ),
     query: (input, allow, signal) =>
       askingToo(allow, signal, () => query(input ?? {})),
   })
