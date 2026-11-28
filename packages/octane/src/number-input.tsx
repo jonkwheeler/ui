@@ -144,7 +144,9 @@ function NumberInputControl({
   "value" | "defaultValue" | "children" | "readOnly"
 >) {
   const numberInput = useNumberInput("NumberInputControl")
-  // The core writes the text as it changes, so Octane only renders where it starts.
+  // The core writes the text as it changes, so Octane only renders where it
+  // starts.
+  const [text] = React.useState(() => numberInput.state.text)
   const control = (input: Record<string, any>, state: NumberInputState) => {
     const { field } = numberInput
     const [own, element] = field
@@ -155,7 +157,7 @@ function NumberInputControl({
       : own
     return renderElement(
       "input",
-      { ...rest, defaultValue: value },
+      { ...rest, defaultValue: text },
       element,
       state
     )
