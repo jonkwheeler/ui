@@ -10,7 +10,7 @@ import {
   CarouselViewport,
   createCarouselController,
 } from "@ui-sdk/octane/carousel"
-import { createRoot, useState, type CSSProperties } from "octane"
+import { createRoot, useEffect, useState, type CSSProperties } from "octane"
 import { carouselFixture, carouselOptions } from "tests/fixtures/carousel.ts"
 
 const controller = createCarouselController()
@@ -38,8 +38,16 @@ function Fixture() @{
   const [action, setAction] = useState("")
   const [reason, setReason] = useState("")
   const [rested, setRested] = useState("")
-  const { perView, cancel, playToggle, controlled, options } = carouselOptions()
+  const [{ perView, cancel, playToggle, controlled, disabledMedia, options }] =
+    useState(carouselOptions)
   const [page, setPage] = useState(1)
+  const [disabled, setDisabled] = useState(false)
+  useEffect(() => {
+    const change = () => setDisabled(!!disabledMedia?.matches)
+    change()
+    disabledMedia?.addEventListener("change", change)
+    return () => disabledMedia?.removeEventListener("change", change)
+  }, [disabledMedia])
 
   <div class="fixture">
     <button>Before</button>
@@ -50,6 +58,7 @@ function Fixture() @{
       controller={controller}
       {...options}
       {...(controlled && { page })}
+      disabled={disabled}
       onPageChange={(page, details) => {
         if (page === cancel) {
           return details.cancel()
