@@ -34,7 +34,13 @@ import {
 } from "../kernel/modality"
 import { isAfter } from "../kernel/order"
 import { isBrowser } from "../platform/env"
-import { afterPaint, ahead, enforceHidden, writeStyle } from "../platform/style"
+import {
+  afterPaint,
+  ahead,
+  enforceHidden,
+  entering,
+  writeStyle,
+} from "../platform/style"
 import {
   activeElement,
   composedContains,
@@ -1053,7 +1059,7 @@ function createPopupLayer<
     }
   }
 
-  function attach(el: HTMLElement, config: AttachConfig) {
+  function attach(el: HTMLElement, config: AttachConfig, binding: boolean) {
     const cleanups: (() => void)[] = []
     const trigger = options.trigger()
     const host = config.host?.() ?? el
@@ -1085,6 +1091,10 @@ function createPopupLayer<
       try {
         host.showPopover()
       } catch {}
+    }
+    // Content that binds open wasn't showing before, so nothing in it is moving.
+    if (binding) {
+      entering.add(el)
     }
     if (config.position && options.position) {
       const placement = options.position(
@@ -1444,13 +1454,13 @@ function createPopupLayer<
     }
   }
 
-  function show() {
+  function show(binding = false) {
     if (!bound || shown) {
       return
     }
     const { el, config } = bound
     shown = { el, cleanup: () => {}, backdrop: config.backdrop?.() }
-    shown.cleanup = attach(el, config)
+    shown.cleanup = attach(el, config, binding)
   }
 
   function showBackdrop(backdrop: HTMLElement, inline = false) {
@@ -1611,7 +1621,7 @@ function createPopupLayer<
           if (shown && shown.el !== el) {
             hide()
           }
-          show()
+          show(true)
         }
       }
       if (el.isConnected) {

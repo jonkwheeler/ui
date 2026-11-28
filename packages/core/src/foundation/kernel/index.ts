@@ -58,7 +58,9 @@ export { createOrder, documentOrder, inDocumentOrder, isAfter } from "./order"
 export {
   aliasReferences,
   attrs,
+  awake,
   bind,
+  firstAsleep,
   held,
   madeLabel,
   onProps,
