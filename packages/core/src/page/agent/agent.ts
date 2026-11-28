@@ -10,6 +10,7 @@ import { withSource } from "../../foundation/kernel/details"
 import { documentOrder, inDocumentOrder } from "../../foundation/kernel/order"
 import { partState } from "../../foundation/kernel/part"
 import type { PrimitiveInstance } from "../../foundation/kernel/primitive-types"
+import { withoutFocus } from "../../foundation/popups/popup"
 import { foldText } from "../../foundation/text/match"
 import {
   confirmOf,
@@ -407,6 +408,15 @@ const leftPage = () =>
       Number(a.ref.slice(1)) - Number(b.ref.slice(1))
   )
 
+// An item a person can't reach, like one in a folded column, is left out, but
+// not one in its list's closed content, which opening the list shows. An item
+// with `display: contents` has no box of its own, so its children say.
+const reachable = (el: HTMLElement) =>
+  isShown(el) ||
+  !!el.closest("[hidden]")?.matches('[data-slot$="-content"]') ||
+  (getComputedStyle(el).display === "contents" &&
+    [...el.children].some((child) => isShown(child as HTMLElement)))
+
 // The items on the page, named by their trigger when they have one, like an
 // accordion's sections, else by their text.
 function renderedItems(parts: Bound[]) {
@@ -416,7 +426,8 @@ function renderedItems(parts: Bound[]) {
         part.key &&
         (part.slot === "item" ||
           part.slot === "tab" ||
-          (part.slot === "root" && part.el.getAttribute("role") === "radio"))
+          (part.slot === "root" && part.el.getAttribute("role") === "radio")) &&
+        reachable(part.el)
     )
   )
   const nested = items.map((part) => part.el)
@@ -2713,27 +2724,30 @@ function createAgent(
         return data ?? seen
       }
       await beforeOpen()
-      asAgent(() => api.setOpen!(true))
-      let shown = renderedItems(bound(instance))
-      const open = () => (instance.get() as { open?: boolean }).open
-      // Items that load can take a while. Ones the data already lists mount
-      // with the list, and a list that didn't open shows none.
-      for (
-        let tries = 0;
-        tries < (data ? 4 : 60) &&
-        (!shown.length || unseen()) &&
-        (tries < 4 || open());
-        tries++
-      ) {
-        await frames()
-        shown = renderedItems(bound(instance))
-      }
-      if (shown.length) {
-        whileOpen?.(disabledItems(entry, instance), bound(instance))
-      }
-      items = data ?? shown
-      looked.set(instance, shown)
-      asAgent(() => api.setOpen!(false))
+      const elements = bound(instance).map((part) => part.el)
+      await withoutFocus(elements, async () => {
+        asAgent(() => api.setOpen!(true))
+        let shown = renderedItems(bound(instance))
+        const open = () => (instance.get() as { open?: boolean }).open
+        // Items that load can take a while. Ones the data already lists mount
+        // with the list, and a list that didn't open shows none.
+        for (
+          let tries = 0;
+          tries < (data ? 4 : 60) &&
+          (!shown.length || unseen()) &&
+          (tries < 4 || open());
+          tries++
+        ) {
+          await frames()
+          shown = renderedItems(bound(instance))
+        }
+        if (shown.length) {
+          whileOpen?.(disabledItems(entry, instance), bound(instance))
+        }
+        items = data ?? shown
+        looked.set(instance, shown)
+        asAgent(() => api.setOpen!(false))
+      })
       await frames()
     }
     return items
