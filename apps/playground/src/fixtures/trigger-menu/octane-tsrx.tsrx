@@ -10,7 +10,7 @@ import {
   TriggerMenuList,
   TriggerMenuStatus,
 } from "@ui-sdk/octane/trigger-menu"
-import { createRoot, useId, useState } from "octane"
+import { createRoot, useId, useState, type FormEvent } from "octane"
 import {
   fixtureTriggers,
   selectAction,
@@ -42,8 +42,10 @@ function Composer({
   onAction: (action: string) => void
   onOpen: (open: string) => void
 }) @{
-  const { input, textarea, empty, autoHighlight } = triggerMenuOptions()
+  const { input, textarea, empty, autoHighlight, controlled } =
+    triggerMenuOptions()
   const [triggers] = useState(fixtureTriggers)
+  const [text, setText] = useState("")
   const id = useId()
 
   <TriggerMenu
@@ -64,6 +66,11 @@ function Composer({
       render={
         input ? <input /> : textarea ? <Textarea autoResize /> : undefined
       }
+      {...(controlled && {
+        value: text,
+        onInput: (event: FormEvent<HTMLTextAreaElement>) =>
+          setText(event.currentTarget.value),
+      })}
     />
     <TriggerMenuHint className="hint" />
     <TriggerMenuStatus className="status" />

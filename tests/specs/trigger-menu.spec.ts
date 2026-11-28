@@ -45,8 +45,8 @@ test.describe("opening", () => {
     framework,
   }) => {
     test.skip(
-      framework !== "react",
-      "Only React sets a controlled field's value back in a render."
+      !["react", "octane", "octane-tsrx"].includes(framework),
+      "Only React and Octane set a controlled field's value back in a render."
     )
     await open("trigger-menu", { controlled: "" })
     await field(page).focus()
